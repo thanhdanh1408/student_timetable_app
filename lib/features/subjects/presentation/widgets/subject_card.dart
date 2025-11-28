@@ -1,5 +1,7 @@
+// lib/features/subjects/presentation/widgets/subject_card.dart
 import 'package:flutter/material.dart';
-import 'package:student_timetable_app/features/subjects/domain/entities/subject_entity.dart';
+import '../../domain/entities/subject_entity.dart';
+import 'delete_confirm_dialog.dart';
 
 class SubjectCard extends StatelessWidget {
   final SubjectEntity subject;
@@ -16,27 +18,43 @@ class SubjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          subject.subjectName,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(subject.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('${subject.credit} tín chỉ'),
-                Text(subject.teacher),
-                Text(subject.room),
-              ],
+            const SizedBox(height: 8),
+            Text("Giảng viên: ${subject.teacherName}"),
+            Text("Phòng: ${subject.room}"),
+            Text("Thứ ${subject.dayOfWeek == 8 ? 'CN' : subject.dayOfWeek - 1} • ${subject.startTime} - ${subject.endTime}"),
+            Text("Tín chỉ: ${subject.credit} • ${subject.semester}"),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.indigo),
+              onPressed: onEdit,
             ),
-            Row(
-              children: [
-                IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),
-                IconButton(icon: const Icon(Icons.delete), onPressed: onDelete),
-              ],
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => DeleteConfirmDialog(
+                    subjectName: subject.subjectName,
+                    onConfirm: onDelete,
+                  ),
+                );
+              },
             ),
           ],
         ),

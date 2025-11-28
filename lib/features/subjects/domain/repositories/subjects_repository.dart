@@ -1,8 +1,9 @@
-import 'package:student_timetable_app/features/subjects/domain/entities/subject_entity.dart';
+// lib/features/subjects/domain/repositories/subjects_repository.dart
+import '../entities/subject_entity.dart';
 
 abstract class SubjectsRepository {
-  Future<List<SubjectEntity>> getSubjects();
-  Future<void> addSubject(SubjectEntity subject);
-  Future<void> editSubject(SubjectEntity subject);
-  Future<void> deleteSubject(int subjectId);
+  Future<List<SubjectEntity>> getAll();
+  Future<void> add(SubjectEntity subject);
+  Future<void> update(SubjectEntity subject);
+  Future<void> delete(int id);
 }

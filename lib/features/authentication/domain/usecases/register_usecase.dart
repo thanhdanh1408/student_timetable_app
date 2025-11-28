@@ -1,12 +1,23 @@
-import 'package:student_timetable_app/features/authentication/domain/entities/user_entity.dart';
-import 'package:student_timetable_app/features/authentication/domain/repositories/auth_repository.dart';
+// lib/features/authentication/domain/usecases/register_usecase.dart
+import '../entities/user_entity.dart';
+import '../repositories/auth_repository.dart';
 
 class RegisterUsecase {
   final AuthRepository repository;
 
   RegisterUsecase(this.repository);
 
-  Future<UserEntity> call(String fullname, String studentCode, String email, String password) async {
-    return await repository.register(fullname, studentCode, email, password);
+  Future<UserEntity> call({
+    required String fullname,
+    required String email,
+    required String password,
+    String? phone,
+  }) {
+    return repository.register(
+      fullname: fullname,
+      email: email,
+      password: password,
+      phone: phone,
+    );
   }
 }

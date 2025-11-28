@@ -27,7 +27,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> mockRegister(String fullname, String studentCode, String email, String password) async {
-    await Future.delayed(const Duration(seconds: 1));  // Giả lập delay
+    await Future.delayed(const Duration(seconds: 1));
     if (_mockUsers.containsKey(email)) {
       throw Exception('Email đã tồn tại');
     }

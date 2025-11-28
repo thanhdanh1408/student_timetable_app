@@ -1,74 +1,76 @@
+// lib/features/subjects/presentation/providers/subjects_provider.dart
 import 'package:flutter/material.dart';
-import 'package:student_timetable_app/features/subjects/data/repositories/subjects_repository_impl.dart';
-import 'package:student_timetable_app/features/subjects/domain/entities/subject_entity.dart';
-import 'package:student_timetable_app/features/subjects/domain/usecases/add_subject_usecase.dart';
-import 'package:student_timetable_app/features/subjects/domain/usecases/delete_subject_usecase.dart';
-import 'package:student_timetable_app/features/subjects/domain/usecases/edit_subject_usecase.dart';
-import 'package:student_timetable_app/features/subjects/domain/usecases/get_subjects_usecase.dart';
+import '../../domain/entities/subject_entity.dart';
+import '../../domain/usecases/get_subjects_usecase.dart';
+import '../../domain/usecases/add_subject_usecase.dart';
+import '../../domain/usecases/update_subject_usecase.dart';
+import '../../domain/usecases/delete_subject_usecase.dart';
 
 class SubjectsProvider with ChangeNotifier {
-  final GetSubjectsUsecase getUsecase = GetSubjectsUsecase(SubjectsRepositoryImpl());
-  final AddSubjectUsecase addUsecase = AddSubjectUsecase(SubjectsRepositoryImpl());
-  final EditSubjectUsecase editUsecase = EditSubjectUsecase(SubjectsRepositoryImpl());
-  final DeleteSubjectUsecase deleteUsecase = DeleteSubjectUsecase(SubjectsRepositoryImpl());
+  final GetSubjectsUsecase _get;
+  final AddSubjectUsecase _add;
+  final UpdateSubjectUsecase _update;
+  final DeleteSubjectUsecase _delete;
+
+  SubjectsProvider({
+    required GetSubjectsUsecase get,
+    required AddSubjectUsecase add,
+    required UpdateSubjectUsecase update,
+    required DeleteSubjectUsecase delete,
+  })  : _get = get,
+        _add = add,
+        _update = update,
+        _delete = delete;
+  // Don't call load() here - wait for page to initialize
 
   List<SubjectEntity> _subjects = [];
   bool _isLoading = false;
-  String? _errorMessage;
+  String? _error;
 
   List<SubjectEntity> get subjects => _subjects;
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  String? get error => _error;
 
-  Future<void> fetchSubjects() async {
+  Future<void> load() async {
     _isLoading = true;
     notifyListeners();
     try {
-      _subjects = await getUsecase();
-      print('Fetched ${_subjects.length} subjects');  // Debug console
+      _subjects = await _get();
     } catch (e) {
-      _errorMessage = e.toString();
+      _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> addSubject(SubjectEntity subject) async {
+  Future<void> add(SubjectEntity s) async {
     try {
-      await addUsecase(subject);
-      await fetchSubjects();
-      print('Added subject: ${subject.name}');  // Debug
+      await _add(s);
+      await load();
     } catch (e) {
-      _errorMessage = e.toString();
+      _error = e.toString();
       notifyListeners();
     }
   }
 
-  Future<void> editSubject(SubjectEntity subject) async {
+  Future<void> update(SubjectEntity s) async {
     try {
-      await editUsecase(subject);
-      await fetchSubjects();
-      print('Edited subject ID: ${subject.subjectId}');  // Debug
+      await _update(s);
+      await load();
     } catch (e) {
-      _errorMessage = e.toString();
+      _error = e.toString();
       notifyListeners();
     }
   }
 
-  Future<void> deleteSubject(int subjectId) async {
+  Future<void> delete(int id) async {
     try {
-      await deleteUsecase(subjectId);
-      await fetchSubjects();
-      print('Deleted subject ID: $subjectId');  // Debug
+      await _delete(id);
+      await load();
     } catch (e) {
-      _errorMessage = e.toString();
+      _error = e.toString();
       notifyListeners();
     }
-  }
-
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
   }
 }

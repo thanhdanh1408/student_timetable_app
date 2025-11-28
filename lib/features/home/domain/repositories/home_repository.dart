@@ -1,4 +1,5 @@
-import 'package:student_timetable_app/features/home/domain/entities/home_summary_entity.dart';
+// lib/features/home/domain/repositories/home_repository.dart
+import '../entities/home_summary_entity.dart';
 
 abstract class HomeRepository {
   Future<HomeSummaryEntity> getSummary();

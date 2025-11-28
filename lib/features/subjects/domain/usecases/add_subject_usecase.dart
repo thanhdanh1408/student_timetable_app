@@ -1,12 +1,9 @@
-import 'package:student_timetable_app/features/subjects/domain/entities/subject_entity.dart';
-import 'package:student_timetable_app/features/subjects/domain/repositories/subjects_repository.dart';
+// add_subject_usecase.dart
+import '../entities/subject_entity.dart';
+import '../repositories/subjects_repository.dart';
 
 class AddSubjectUsecase {
   final SubjectsRepository repository;
-
   AddSubjectUsecase(this.repository);
-
-  Future<void> call(SubjectEntity subject) async {
-    await repository.addSubject(subject);
-  }
+  Future<void> call(SubjectEntity subject) => repository.add(subject);
 }

@@ -1,12 +1,9 @@
-import 'package:student_timetable_app/features/subjects/domain/entities/subject_entity.dart';
-import 'package:student_timetable_app/features/subjects/domain/repositories/subjects_repository.dart';
+// get_subjects_usecase.dart
+import '../entities/subject_entity.dart';
+import '../repositories/subjects_repository.dart';
 
 class GetSubjectsUsecase {
   final SubjectsRepository repository;
-
   GetSubjectsUsecase(this.repository);
-
-  Future<List<SubjectEntity>> call() async {
-    return await repository.getSubjects();
-  }
+  Future<List<SubjectEntity>> call() => repository.getAll();
 }
