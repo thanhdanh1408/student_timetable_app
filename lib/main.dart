@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'core/config/app_routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 
 // Entities (Hive)
@@ -20,6 +20,7 @@ import 'features/exam/presentation/providers/exam_provider.dart';
 import 'features/home/presentation/providers/home_provider.dart';
 import 'features/notifications/presentation/providers/notification_provider.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
+import 'core/providers/notification_settings_provider.dart';
 
 // Repository Impl (Hive)
 import 'features/subjects/domain/repositories_impl/subjects_repository_impl.dart';
@@ -27,7 +28,6 @@ import 'features/schedule/domain/repositories_impl/schedule_repository_impl.dart
 import 'features/exam/domain/repositories_impl/exam_repository_impl.dart';
 import 'features/notifications/domain/repositories_impl/notification_repository_impl.dart';
 import 'features/settings/domain/repositories_impl/settings_repository_impl.dart';
-import 'features/home/domain/repositories_impl/home_repository_impl.dart';
 
 // Usecases
 import 'features/subjects/domain/usecases/get_subjects_usecase.dart';
@@ -48,13 +48,16 @@ import 'features/notifications/domain/usecases/delete_notification_usecase.dart'
 import 'features/settings/domain/usecases/get_settings_usecase.dart';
 import 'features/settings/domain/usecases/save_settings_usecase.dart';
 import 'utils/demo_data_initializer.dart';
+import 'core/services/background_task_handler.dart';
+import 'core/services/reminder_service.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 1. Khởi tạo Hive
   await Hive.initFlutter();
-  
+
   // Đăng ký adapters
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(SubjectEntityAdapter());
@@ -72,7 +75,7 @@ void main() async {
     Hive.registerAdapter(UserSettingsEntityAdapter());
   }
 
-  // Tạo Hive boxes
+  // Mở Hive boxes
   await Hive.openBox('auth_user');
   await Hive.openBox<SubjectEntity>('subjects_box');
   await Hive.openBox<ScheduleEntity>('schedules_box');
@@ -93,8 +96,20 @@ void main() async {
   await notificationRepo.init();
   await settingsRepo.init();
 
+  // Khởi tạo SharedPreferences và ReminderService
+  final prefs = await SharedPreferences.getInstance();
+  final reminderService = ReminderService(prefs);
+  
+  // Khởi tạo NotificationService
+  final notificationService = NotificationService();
+  await notificationService.init();
+
   // Initialize demo data if storage is empty
   await initializeDemoData();
+  // Khởi tạo và đăng ký background tasks
+  final backgroundTaskHandler = BackgroundTaskHandler();
+  await backgroundTaskHandler.init();
+  await backgroundTaskHandler.registerTasks();
 
   // 3. Khởi tạo Usecases
   final getSubjectsUsecase = GetSubjectsUsecase(subjectsRepo);
@@ -125,7 +140,16 @@ void main() async {
       providers: [
         // Auth
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        
+
+        // Notification Settings
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = NotificationSettingsProvider();
+            provider.init();
+            return provider;
+          },
+        ),
+
         // Subjects
         ChangeNotifierProvider(
           create: (_) => SubjectsProvider(
@@ -133,9 +157,9 @@ void main() async {
             add: addSubjectUsecase,
             update: updateSubjectUsecase,
             delete: deleteSubjectUsecase,
-          ),
+          )..load(), // Load data on creation
         ),
-        
+
         // Schedule
         ChangeNotifierProvider(
           create: (_) => ScheduleProvider(
@@ -143,9 +167,10 @@ void main() async {
             add: addScheduleUsecase,
             update: updateScheduleUsecase,
             delete: deleteScheduleUsecase,
-          ),
+            reminderService: reminderService,
+          )..load(), // Load data on creation
         ),
-        
+
         // Exam
         ChangeNotifierProvider(
           create: (_) => ExamProvider(
@@ -153,7 +178,7 @@ void main() async {
             add: addExamUsecase,
             update: updateExamUsecase,
             delete: deleteExamUsecase,
-          ),
+          )..load(), // Load data on creation
         ),
 
         // Notifications
@@ -162,7 +187,8 @@ void main() async {
             get: getNotificationsUsecase,
             add: addNotificationUsecase,
             delete: deleteNotificationUsecase,
-          ),
+            notificationService: notificationService,
+          )..load(), // Load data on creation
         ),
 
         // Settings
@@ -181,11 +207,11 @@ void main() async {
             examProvider: null,
           ),
           update: (_, subjectsProvider, scheduleProvider, examProvider, previousHomeProvider) =>
-            HomeProvider(
-              subjectsProvider: subjectsProvider,
-              scheduleProvider: scheduleProvider,
-              examProvider: examProvider,
-            ),
+              HomeProvider(
+            subjectsProvider: subjectsProvider,
+            scheduleProvider: scheduleProvider,
+            examProvider: examProvider,
+          ),
         ),
       ],
       child: const AppRoot(),
@@ -201,5 +227,3 @@ class AppRoot extends StatelessWidget {
     return const AppWidget();
   }
 }
-
-

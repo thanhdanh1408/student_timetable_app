@@ -1,12 +1,19 @@
 // lib/features/exam/presentation/widgets/exam_form_dialog.dart
 import 'package:flutter/material.dart';
 import '../../domain/entities/exam_entity.dart';
+import '../../../subjects/domain/entities/subject_entity.dart';
 
 class ExamFormDialog extends StatefulWidget {
   final ExamEntity? exam;
+  final List<SubjectEntity> subjects;
   final Function(ExamEntity) onSave;
 
-  const ExamFormDialog({super.key, this.exam, required this.onSave});
+  const ExamFormDialog({
+    super.key,
+    this.exam,
+    required this.subjects,
+    required this.onSave,
+  });
 
   @override
   State<ExamFormDialog> createState() => _ExamFormDialogState();
@@ -14,7 +21,8 @@ class ExamFormDialog extends StatefulWidget {
 
 class _ExamFormDialogState extends State<ExamFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _subjectCtrl, _teacherCtrl, _roomCtrl;
+  late TextEditingController _roomCtrl;
+  late SubjectEntity? _selectedSubject;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -22,12 +30,20 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
   @override
   void initState() {
     super.initState();
-    _subjectCtrl = TextEditingController(text: widget.exam?.subjectName ?? '');
-    _teacherCtrl = TextEditingController(text: widget.exam?.teacherName ?? '');
     _roomCtrl = TextEditingController(text: widget.exam?.room ?? '');
     _selectedDate = widget.exam?.examDate ?? DateTime.now();
     _startTime = widget.exam != null ? _parseTime(widget.exam!.startTime) : null;
     _endTime = widget.exam?.endTime != null ? _parseTime(widget.exam!.endTime!) : null;
+
+    // Tìm môn học được chọn dựa trên tên
+    if (widget.exam != null && widget.subjects.isNotEmpty) {
+      _selectedSubject = widget.subjects.firstWhere(
+        (s) => s.subjectName == widget.exam!.subjectName,
+        orElse: () => widget.subjects.first,
+      );
+    } else {
+      _selectedSubject = widget.subjects.isNotEmpty ? widget.subjects.first : null;
+    }
   }
 
   TimeOfDay _parseTime(String time) {
@@ -35,14 +51,14 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  String _formatTime(TimeOfDay? time) => time == null ? "Chưa chọn" : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay? time) =>
+      time == null ? "Chưa chọn" : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
-  String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
   @override
   void dispose() {
-    _subjectCtrl.dispose();
-    _teacherCtrl.dispose();
     _roomCtrl.dispose();
     super.dispose();
   }
@@ -57,20 +73,31 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _subjectCtrl,
-                decoration: const InputDecoration(labelText: "Môn thi", border: OutlineInputBorder()),
-                validator: (v) => (v?.isEmpty ?? true) ? "Vui lòng nhập môn thi" : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _teacherCtrl,
-                decoration: const InputDecoration(labelText: "Giảng viên", border: OutlineInputBorder()),
+              // Dropdown chọn môn học
+              DropdownButtonFormField<SubjectEntity>(
+                value: _selectedSubject,
+                decoration: const InputDecoration(
+                  labelText: "Môn thi*",
+                  border: OutlineInputBorder(),
+                ),
+                items: widget.subjects
+                    .map((subject) => DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject.subjectName),
+                        ))
+                    .toList(),
+                onChanged: (SubjectEntity? value) {
+                  setState(() => _selectedSubject = value);
+                },
+                validator: (value) => value == null ? "Vui lòng chọn môn thi" : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _roomCtrl,
-                decoration: const InputDecoration(labelText: "Phòng thi", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Phòng thi",
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               ListTile(
@@ -95,7 +122,10 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
                   if (t != null) setState(() => _startTime = t);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: "Giờ bắt đầu*", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: "Giờ bắt đầu*",
+                    border: OutlineInputBorder(),
+                  ),
                   child: Text(_formatTime(_startTime)),
                 ),
               ),
@@ -109,7 +139,10 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
                   if (t != null) setState(() => _endTime = t);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: "Giờ kết thúc (tùy chọn)", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: "Giờ kết thúc (tùy chọn)",
+                    border: OutlineInputBorder(),
+                  ),
                   child: Text(_formatTime(_endTime)),
                 ),
               ),
@@ -121,11 +154,11 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
         ElevatedButton(
           onPressed: () async {
-            if (_formKey.currentState!.validate() && _startTime != null) {
+            if (_formKey.currentState!.validate() && _startTime != null && _selectedSubject != null) {
               final exam = ExamEntity(
                 id: widget.exam?.id,
-                subjectName: _subjectCtrl.text.trim(),
-                teacherName: _teacherCtrl.text.trim(),
+                subjectName: _selectedSubject!.subjectName,
+                teacherName: _selectedSubject!.teacherName,
                 room: _roomCtrl.text.trim(),
                 examDate: _selectedDate,
                 startTime: _formatTime(_startTime),
@@ -136,7 +169,7 @@ class _ExamFormDialogState extends State<ExamFormDialog> {
               if (mounted) Navigator.pop(context);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Vui lòng chọn giờ bắt đầu")),
+                const SnackBar(content: Text("Vui lòng chọn môn thi và giờ bắt đầu")),
               );
             }
           },

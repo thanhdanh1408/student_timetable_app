@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
+import '../../../../core/providers/notification_settings_provider.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -10,11 +11,13 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final notificationSettings =
+        context.watch<NotificationSettingsProvider>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cài đặt", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.grey[800],
+        backgroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -64,6 +67,150 @@ class SettingsPage extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+
+            // Cài đặt thông báo
+            const Text("Thông báo", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 12),
+            Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.schedule),
+                    title: const Text("Nhắc nhở buổi học"),
+                    trailing: Switch(
+                      value: notificationSettings.enableScheduleNotifications,
+                      onChanged: (value) {
+                        notificationSettings
+                            .setEnableScheduleNotifications(value);
+                      },
+                    ),
+                  ),
+                  if (notificationSettings.enableScheduleNotifications)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(),
+                          const Text(
+                            'Thời gian trước buổi học:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: NotificationSettingsProvider
+                                .reminderOptions
+                                .map(
+                              (minutes) {
+                                final isSelected =
+                                    notificationSettings
+                                            .scheduleReminderMinutes ==
+                                        minutes;
+                                return ChoiceChip(
+                                  label: Text(
+                                    notificationSettings
+                                        .getReminderText(minutes),
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  onSelected: isSelected
+                                      ? null
+                                      : (_) {
+                                          notificationSettings
+                                              .setScheduleReminderMinutes(
+                                                  minutes);
+                                        },
+                                  backgroundColor: isSelected
+                                      ? Colors.black
+                                      : Colors.white,
+                                  selectedColor: Colors.black,
+                                );
+                              },
+                            ).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.assignment),
+                    title: const Text("Nhắc nhở lịch thi"),
+                    trailing: Switch(
+                      value: notificationSettings.enableExamNotifications,
+                      onChanged: (value) {
+                        notificationSettings
+                            .setEnableExamNotifications(value);
+                      },
+                    ),
+                  ),
+                  if (notificationSettings.enableExamNotifications)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(),
+                          const Text(
+                            'Thời gian trước lịch thi:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: NotificationSettingsProvider
+                                .reminderOptions
+                                .map(
+                              (minutes) {
+                                final isSelected =
+                                    notificationSettings
+                                            .examReminderMinutes ==
+                                        minutes;
+                                return ChoiceChip(
+                                  label: Text(
+                                    notificationSettings
+                                        .getReminderText(minutes),
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  onSelected: isSelected
+                                      ? null
+                                      : (_) {
+                                          notificationSettings
+                                              .setExamReminderMinutes(
+                                                  minutes);
+                                        },
+                                  backgroundColor: isSelected
+                                      ? Colors.black
+                                      : Colors.white,
+                                  selectedColor: Colors.black,
+                                );
+                              },
+                            ).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
 

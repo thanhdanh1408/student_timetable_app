@@ -38,7 +38,7 @@ class ScheduleTimetable extends StatelessWidget {
                 ...List.generate(7, (dayIndex) {
                   final dayOfWeek = dayIndex + 2; // T2=2, ..., CN=8
                   final matching = schedules.where((s) =>
-                      s.dayOfWeek == (dayOfWeek == 8 ? 1 : dayOfWeek) &&
+                      s.dayOfWeek == dayOfWeek &&
                       s.startTime == time).toList();
 
                   if (matching.isEmpty) return const DataCell(SizedBox());

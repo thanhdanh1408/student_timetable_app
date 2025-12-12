@@ -32,9 +32,7 @@ class SubjectCard extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
             Text("Giảng viên: ${subject.teacherName}"),
-            Text("Phòng: ${subject.room}"),
-            Text("Thứ ${subject.dayOfWeek == 8 ? 'CN' : subject.dayOfWeek - 1} • ${subject.startTime} - ${subject.endTime}"),
-            Text("Tín chỉ: ${subject.credit} • ${subject.semester}"),
+            Text("Tín chỉ: ${subject.credit}"),
           ],
         ),
         trailing: Row(

@@ -1,0 +1,3 @@
+- [x] Edit lib/features/home/presentation/pages/home_page.dart to load data for subjects, schedule, and exam providers in initState
+- [x] Edit lib/features/home/presentation/providers/home_provider.dart to fix the dayOfWeek filter for today's schedules
+- [x] Test the app to ensure data loads on startup and counts are correct

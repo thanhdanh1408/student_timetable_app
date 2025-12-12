@@ -64,23 +64,18 @@ class HomeProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Kiểm tra providers có được set chưa
-      if (_subjectsProvider == null || _scheduleProvider == null || _examProvider == null) {
-        throw Exception("Providers chưa được khởi tạo");
-      }
-
       // Lấy data hiện tại từ các provider (không load lại để tránh vòng lặp)
-      final subjects = _subjectsProvider!.subjects;
-      final schedules = _scheduleProvider!.schedules;
-      final exams = _examProvider!.exams;
+      final subjects = _subjectsProvider?.subjects ?? [];
+      final schedules = _scheduleProvider?.schedules ?? [];
+      final exams = _examProvider?.exams ?? [];
 
       // Filter: hôm nay (so sánh dayOfWeek as integer)
       final now = DateTime.now();
       final todayDayOfWeek = now.weekday; // 1=Mon, 2=Tue, ..., 7=Sun
-      
-      // Chuyển dayOfWeek: schedule dùng 1-7 (ISO), subjects dùng 2-8, nên cần check cả 2
+
+      // dayOfWeek in entities: 2=Mon, 3=Tue, ..., 8=Sun
       final todaySchedules = schedules
-          .where((s) => s.dayOfWeek == todayDayOfWeek || s.dayOfWeek == (todayDayOfWeek % 7) + 1)
+          .where((s) => s.dayOfWeek == todayDayOfWeek + 1)
           .map((s) => "${s.subjectName} • ${s.startTime} - ${s.endTime} • Phòng ${s.room}")
           .toList();
 
@@ -103,6 +98,7 @@ class HomeProvider with ChangeNotifier {
         upcomingExams: upcomingExams,
       );
     } catch (e) {
+      print("HomeProvider error: $e");
       // Fallback nếu có lỗi
       _summary = HomeSummary(
         subjectCount: 0,

@@ -5,6 +5,10 @@ import '../providers/exam_provider.dart';
 import '../widgets/exam_card.dart';
 import '../widgets/exam_form_dialog.dart';
 
+// Import SubjectsProvider - navigate from exam/presentation/pages
+// ../../../ = features, then subjects/presentation/providers
+import '../../../subjects/presentation/providers/subjects_provider.dart';
+
 class ExamPage extends StatefulWidget {
   const ExamPage({super.key});
   @override State<ExamPage> createState() => _ExamPageState();
@@ -31,6 +35,7 @@ class _ExamPageState extends State<ExamPage> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExamProvider>();
+    final subjectsProvider = context.watch<SubjectsProvider>();
 
     // Filter logic
     var filtered = provider.exams;
@@ -54,13 +59,16 @@ class _ExamPageState extends State<ExamPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Lịch thi", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () => showDialog(
               context: context,
-              builder: (_) => ExamFormDialog(onSave: (e) => provider.add(e)),
+              builder: (_) => ExamFormDialog(
+                subjects: subjectsProvider.subjects,
+                onSave: (e) => provider.add(e),
+              ),
             ),
           ),
         ],
@@ -127,7 +135,11 @@ class _ExamPageState extends State<ExamPage> {
                               exam: exam,
                               onEdit: () => showDialog(
                                 context: context,
-                                builder: (_) => ExamFormDialog(exam: exam, onSave: (e) => provider.update(e)),
+                                builder: (_) => ExamFormDialog(
+                                  exam: exam,
+                                  subjects: subjectsProvider.subjects,
+                                  onSave: (e) => provider.update(e),
+                                ),
                               ),
                               onDelete: () {
                                 if (exam.id != null) {
@@ -146,17 +158,20 @@ class _ExamPageState extends State<ExamPage> {
   void _showDeleteConfirm(BuildContext context, ExamProvider provider, int id) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         icon: const Icon(Icons.warning, color: Colors.red, size: 48),
         title: const Text("Xác nhận xóa"),
         content: const Text("Bạn có chắc muốn xóa lịch thi này?\n\nHành động này không thể hoàn tác!"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Hủy")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              Navigator.pop(context);
-              provider.delete(id);
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await Future.delayed(const Duration(milliseconds: 100));
+              if (mounted) {
+                provider.delete(id);
+              }
             },
             child: const Text("Xóa", style: TextStyle(color: Colors.white)),
           ),

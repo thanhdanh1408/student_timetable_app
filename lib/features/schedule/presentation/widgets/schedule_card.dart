@@ -40,7 +40,11 @@ class ScheduleCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Thứ ${schedule.dayOfWeek == 8 ? 'CN' : schedule.dayOfWeek - 1} • ${schedule.startTime} - ${schedule.endTime}",
+                        "Thứ ${schedule.dayOfWeek == 8 ? 'CN' : schedule.dayOfWeek}",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                      Text(
+                        "${schedule.startTime} - ${schedule.endTime}",
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ],
@@ -49,6 +53,7 @@ class ScheduleCard extends StatelessWidget {
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     PopupMenuItem(
+                      onTap: onEdit,
                       child: Row(
                         children: [
                           const Icon(Icons.edit, color: Colors.indigo),
@@ -56,9 +61,9 @@ class ScheduleCard extends StatelessWidget {
                           const Text("Sửa"),
                         ],
                       ),
-                      onTap: onEdit,
                     ),
                     PopupMenuItem(
+                      onTap: onDelete,
                       child: Row(
                         children: [
                           const Icon(Icons.delete, color: Colors.red),
@@ -66,7 +71,6 @@ class ScheduleCard extends StatelessWidget {
                           const Text("Xóa"),
                         ],
                       ),
-                      onTap: onDelete,
                     ),
                   ],
                 ),

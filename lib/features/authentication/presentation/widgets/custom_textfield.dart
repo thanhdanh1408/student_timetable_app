@@ -25,7 +25,7 @@ class CustomTextField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.indigo),
+        prefixIcon: Icon(icon, color: Colors.black),
         filled: true,
         fillColor: Colors.grey[100],
         border: OutlineInputBorder(
@@ -38,7 +38,7 @@ class CustomTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.indigo, width: 2),
+          borderSide: const BorderSide(color: Colors.black, width: 2),
         ),
       ),
     );

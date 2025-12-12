@@ -1,5 +1,6 @@
 // lib/features/notifications/presentation/providers/notification_provider.dart
 import 'package:flutter/material.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
 import '../../domain/usecases/add_notification_usecase.dart';
@@ -9,6 +10,7 @@ class NotificationProvider with ChangeNotifier {
   final GetNotificationsUsecase _getUsecase;
   final AddNotificationUsecase _addUsecase;
   final DeleteNotificationUsecase _deleteUsecase;
+  final NotificationService notificationService;
 
   List<NotificationEntity> _notifications = [];
   String? _error;
@@ -18,6 +20,7 @@ class NotificationProvider with ChangeNotifier {
     required GetNotificationsUsecase get,
     required AddNotificationUsecase add,
     required DeleteNotificationUsecase delete,
+    required this.notificationService,
   })  : _getUsecase = get,
         _addUsecase = add,
         _deleteUsecase = delete;

@@ -11,6 +11,7 @@ import '/features/schedule/presentation/pages/schedule_page.dart';
 import '/features/exam/presentation/pages/exam_page.dart';
 import '/features/settings/presentation/pages/settings_page.dart';
 import '/features/notifications/presentation/pages/notification_page.dart';
+import '/features/splash/presentation/pages/permission_check_page.dart';
 
 class _BottomNavShell extends StatelessWidget {
   final Widget child;
@@ -51,9 +52,11 @@ class _BottomNavShell extends StatelessWidget {
 
 GoRouter createAppRouter(auth.AuthProvider authProvider) {
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final isLoggedIn = authProvider.isLoggedIn;
+      final isSplashPage = state.uri.path == '/splash';
+      if(isSplashPage) return null;
       final isLoginPage = state.uri.path == '/login';
       final isRegisterPage = state.uri.path == '/register';
 
@@ -71,6 +74,7 @@ GoRouter createAppRouter(auth.AuthProvider authProvider) {
     },
     refreshListenable: authProvider,
     routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const PermissionCheckPage()),
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       ShellRoute(

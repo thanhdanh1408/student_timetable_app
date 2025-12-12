@@ -53,7 +53,7 @@ class _SchedulePageState extends State<SchedulePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Lịch học", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
@@ -141,28 +141,6 @@ class _SchedulePageState extends State<SchedulePage> {
                 )
               ],
             ),
-    );
-  }
-
-  void _showDeleteConfirm(BuildContext context, ScheduleProvider provider, int id) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        icon: const Icon(Icons.warning, color: Colors.red, size: 48),
-        title: const Text("Xác nhận xóa"),
-        content: const Text("Bạn có chắc muốn xóa buổi học này?\n\nHành động này không thể hoàn tác!"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              Navigator.pop(context);
-              provider.delete(id);
-            },
-            child: const Text("Xóa", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 }

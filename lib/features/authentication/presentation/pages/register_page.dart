@@ -45,16 +45,16 @@ class _RegisterPageState extends State<RegisterPage> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: Colors.grey.shade200,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, size: 80, color: Colors.green),
+                    child: const Icon(Icons.person_add_alt_1_rounded, size: 80, color: Colors.black),
                   ),
                   const SizedBox(height: 40),
 
                   const Text(
                     "Tạo tài khoản mới",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -149,7 +149,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         onTap: () => context.go('/login'),
                         child: const Text(
                           "Đăng nhập",
-                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],

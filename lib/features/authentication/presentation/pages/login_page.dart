@@ -42,10 +42,10 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
+                      color: Colors.grey.shade200,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.school, size: 80, color: Colors.indigo),
+                    child: const Icon(Icons.school, size: 80, color: Colors.black),
                   ),
                   const SizedBox(height: 40),
 

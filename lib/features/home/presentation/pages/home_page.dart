@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
+import '../../../subjects/presentation/providers/subjects_provider.dart';
+import '../../../schedule/presentation/providers/schedule_provider.dart';
+import '../../../exam/presentation/providers/exam_provider.dart';
 import '../providers/home_provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,9 +18,19 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Load summary data after widget is built
+    // Load summary data after widget is built - không chờ để tránh stuck
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HomeProvider>().loadSummary();
+      try {
+        context.read<SubjectsProvider>().load();
+        context.read<ScheduleProvider>().load();
+        context.read<ExamProvider>().load();
+        // Load summary nhưng không chờ
+        Future.delayed(const Duration(milliseconds: 500), () {
+          context.read<HomeProvider>().loadSummary();
+        });
+      } catch (e) {
+        print("Error loading home data: $e");
+      }
     });
   }
 
@@ -32,7 +45,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Trang chủ", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
@@ -40,10 +53,24 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: home.isLoading
-          ? const Center(child: CircularProgressIndicator())
+      body: home.summary == null
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Đang tải dữ liệu..."),
+                ],
+              ),
+            )
           : RefreshIndicator(
-              onRefresh: () => home.loadSummary(),
+              onRefresh: () async {
+                await context.read<SubjectsProvider>().load();
+                await context.read<ScheduleProvider>().load();
+                await context.read<ExamProvider>().load();
+                await home.loadSummary();
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -68,7 +95,7 @@ class _HomePageState extends State<HomePage> {
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 1.6,
+                      childAspectRatio: 1.25,
                       children: [
                         _SummaryCard(
                           title: "Môn học",
@@ -77,7 +104,7 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.blue,
                         ),
                         _SummaryCard(
-                          title: "Hôm nay",
+                          title: "Lịch học hôm nay",
                           value: "${home.summary?.scheduleTodayCount ?? 0}",
                           icon: Icons.today,
                           color: Colors.green,
@@ -141,7 +168,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
@@ -150,10 +177,17 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: 12),
-          Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color)),
-          Text(title, style: TextStyle(fontSize: 14, color: color)),
+          Icon(icon, size: 36, color: color),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 4),
+          Flexible(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: color),
+            ),
+          ),
         ],
       ),
     );

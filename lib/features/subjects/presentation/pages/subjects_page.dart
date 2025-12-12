@@ -67,7 +67,7 @@ class _SubjectsPageState extends State<SubjectsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Môn học", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),

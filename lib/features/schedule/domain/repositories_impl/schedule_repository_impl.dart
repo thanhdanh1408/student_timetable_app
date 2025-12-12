@@ -29,10 +29,11 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<void> add(ScheduleEntity schedule) async {
+  Future<int> add(ScheduleEntity schedule) async {
     await init();
     final newId = _box.isEmpty ? 1 : (_box.values.last.id ?? 0) + 1;
     await _box.add(schedule.copyWith(id: newId));
+    return newId;
   }
 
   @override
