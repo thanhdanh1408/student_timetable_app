@@ -10,6 +10,9 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
+  
+  // Callback to save notification to database
+  Function(int id, String title, String body, String type)? onNotificationScheduled;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -70,6 +73,7 @@ class NotificationService {
 
   /// Schedule a notification for a specific date/time
   /// scheduledTime: the exact date/time when the notification should appear
+  /// type: 'exam' or 'schedule' for categorization
   /// 
   /// IMPORTANT: Calculate the notification time BEFORE passing to this method.
   /// If you want a notification 5 minutes before an event at 2:00 PM,
@@ -82,6 +86,7 @@ class NotificationService {
     required String body,
     required DateTime scheduledTime,
     String? payload,
+    String type = 'schedule', // 'exam', 'schedule', or 'general'
   }) async {
     if (!_isInitialized) await initialize();
 
@@ -140,6 +145,9 @@ class NotificationService {
       
       print('✅ Successfully scheduled notification #$id');
       print('🔔 ========================================');
+      
+      // Save notification to database via callback
+      onNotificationScheduled?.call(id, title, body, type);
     } catch (e) {
       print('❌ Error scheduling notification: $e');
       print('🔔 ========================================');

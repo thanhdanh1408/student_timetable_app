@@ -150,6 +150,7 @@ class ScheduleProvider with ChangeNotifier {
       body: 'Phòng ${schedule.room} • ${schedule.startTime} - ${schedule.endTime}',
       scheduledTime: notificationTime,
       payload: 'schedule_${schedule.id}',
+      type: 'schedule',
     );
     
     if (notificationTime.difference(now).inDays >= 7) {

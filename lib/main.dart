@@ -103,6 +103,24 @@ void main() async {
   // Khởi tạo NotificationService
   final notificationService = NotificationService();
   await notificationService.initialize();
+  
+  // Set callback để lưu notification vào database
+  notificationService.onNotificationScheduled = (id, title, body, type) async {
+    try {
+      final notification = NotificationEntity(
+        id: id,
+        title: title,
+        body: body,
+        type: type,
+        createdAt: DateTime.now(),
+        isRead: false,
+      );
+      await notificationRepo.add(notification);
+      print('✅ Notification saved to database: $id');
+    } catch (e) {
+      print('❌ Error saving notification to database: $e');
+    }
+  };
 
   // Initialize demo data if storage is empty
   await initializeDemoData();

@@ -144,6 +144,7 @@ class ExamProvider with ChangeNotifier {
         body: 'Phòng ${exam.room} • ${exam.startTime}${exam.endTime != null ? " - ${exam.endTime}" : ""}',
         scheduledTime: notificationTime,
         payload: 'exam_${exam.id}',
+        type: 'exam',
       );
       print('✅ Exam notification scheduled successfully');
     } else {
