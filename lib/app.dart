@@ -24,7 +24,7 @@ class _AppWidgetState extends State<AppWidget> {
     try {
       // Khởi tạo notification service
       final notificationService = NotificationService();
-      await notificationService.init();
+      await notificationService.initialize();
 
       // Khởi tạo background task handler
       final backgroundHandler = BackgroundTaskHandler();

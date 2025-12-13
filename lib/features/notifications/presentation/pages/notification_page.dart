@@ -272,7 +272,7 @@ class _NotificationPageState extends State<NotificationPage>
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () async {
-                  await notificationService.showNotification(
+                  await notificationService.showImmediateNotification(
                     id: 99999,
                     title: 'Test Notification',
                     body: 'Đây là thông báo test để kiểm tra hệ thống!',

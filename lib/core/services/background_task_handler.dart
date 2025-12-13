@@ -7,7 +7,6 @@ import 'notification_service.dart';
 import 'reminder_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String _scheduleReminderTaskId = 'schedule_reminder_task';
 const String _examReminderTaskId = 'exam_reminder_task';
 
 // Hàm được gọi từ background khi workmanager kích hoạt
@@ -31,7 +30,7 @@ void callbackDispatcher() {
 
       // Khởi tạo services
       final notificationService = NotificationService();
-      await notificationService.init();
+      await notificationService.initialize();
       
       final prefs = await SharedPreferences.getInstance();
       final reminderService = ReminderService(prefs);
@@ -43,9 +42,8 @@ void callbackDispatcher() {
       // Chuyển đổi weekday từ Flutter (1-7) sang app dayOfWeek (2-8)
       final todayDayOfWeek = today.weekday == 7 ? 8 : today.weekday + 1;
 
-      // NOTE: Schedule reminders are already handled when users add/update schedules
-      // in ScheduleProvider. No need for background task to recreate them.
-      // This prevents duplicate notifications and retry issues.
+      // NOTE: Schedule reminders are handled in ScheduleProvider when users add/update schedules.
+      // Only exam reminders use background tasks to check for upcoming exams periodically.
       
       if (task == _examReminderTaskId) {
         // Kiểm tra các lịch thi sắp tới (trong 3 ngày)
@@ -114,8 +112,8 @@ class BackgroundTaskHandler {
 
   // Đăng ký các background tasks
   Future<void> registerTasks() async {
-    // NOTE: Schedule reminder task đã bị xóa vì gây thông báo trùng lặp
-    // Thông báo lịch học đã được tạo đúng trong ScheduleProvider khi add/update
+    // NOTE: Chỉ đăng ký exam reminder task
+    // Schedule notifications được xử lý trực tiếp trong ScheduleProvider
     
     // Schedule task kiểm tra lịch thi mỗi 1 giờ
     await Workmanager().registerPeriodicTask(

@@ -1,199 +1,196 @@
+// lib/core/services/notification_service.dart
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:hive/hive.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import '../../features/notifications/domain/entities/notification_entity.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
-  late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
-  late Box<NotificationEntity> _notificationsBox;
-
-  factory NotificationService() {
-    return _instance;
-  }
-
+  factory NotificationService() => _instance;
   NotificationService._internal();
 
-  Future<void> init() async {
-    _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    _notificationsBox = Hive.box<NotificationEntity>('notifications_box');
+  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  bool _isInitialized = false;
 
-    // Khởi tạo timezone
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    // Initialize timezone and set location to Vietnam
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
-
-    // Android configuration
-    const AndroidInitializationSettings androidInitializationSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    // iOS configuration
-    const DarwinInitializationSettings iOSInitializationSettings =
-        DarwinInitializationSettings(
-      requestSoundPermission: true,
-      requestBadgePermission: true,
-      requestAlertPermission: true,
-    );
-
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: androidInitializationSettings,
-      iOS: iOSInitializationSettings,
-    );
-
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
-      },
-    );
-
-    // Request permissions for Android 13+ (API 33+)
-    final androidImplementation = _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
     
-    if (androidImplementation != null) {
-      // Request notification permission for Android 13+
-      await androidImplementation.requestNotificationsPermission();
-      // Request exact alarm permission
-      await androidImplementation.requestExactAlarmsPermission();
+    print('🌍 Timezone set to: ${tz.local.name}');
+    
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
+
+    // Request permissions for Android 13+
+    await _requestPermissions();
+    
+    _isInitialized = true;
+  }
+
+  Future<void> _requestPermissions() async {
+    final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
+    }
+
+    final iosPlugin = _notifications.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    
+    if (iosPlugin != null) {
+      await iosPlugin.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     }
   }
 
-  Future<void> showNotification({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  }) async {
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'schedule_reminders',
-      'Schedule Reminders',
-      channelDescription: 'Notifications for upcoming classes and exams',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      enableVibration: true,
-    );
-
-    const DarwinNotificationDetails iOSNotificationDetails =
-        DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-
-    final NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: iOSNotificationDetails,
-    );
-
-    await _flutterLocalNotificationsPlugin.show(
-      id,
-      title,
-      body,
-      notificationDetails,
-      payload: payload,
-    );
-    await _saveNotificationToHive(id, title, body, DateTime.now(), payload);
+  void _onNotificationTapped(NotificationResponse response) {
+    // Handle notification tap - navigate to appropriate page
+    print('Notification tapped: ${response.payload}');
   }
 
+  /// Schedule a notification for a specific date/time
+  /// scheduledTime: the exact date/time when the notification should appear
+  /// 
+  /// IMPORTANT: Calculate the notification time BEFORE passing to this method.
+  /// If you want a notification 5 minutes before an event at 2:00 PM,
+  /// pass scheduledTime as 1:55 PM (event time minus reminder duration).
+  /// 
+  /// This method will check if scheduledTime is in the future and only schedule if it is.
   Future<void> scheduleNotification({
     required int id,
     required String title,
     required String body,
-    required DateTime scheduledDate,
+    required DateTime scheduledTime,
     String? payload,
   }) async {
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'schedule_reminders',
-      'Schedule Reminders',
-      channelDescription: 'Notifications for upcoming classes and exams',
-      importance: Importance.max,
+    if (!_isInitialized) await initialize();
+
+    // Cancel existing notification with same ID to avoid duplicates
+    await cancelNotification(id);
+
+    print('🔔 ========================================');
+    print('🔔 SCHEDULING NOTIFICATION');
+    print('🔔 ID: $id');
+    print('🔔 Title: $title');
+    print('🔔 Body: $body');
+    print('🔔 Scheduled Time (notification): $scheduledTime');
+    print('🔔 Current Time: ${DateTime.now()}');
+    print('🔔 Time Until Notification: ${scheduledTime.difference(DateTime.now()).inMinutes} minutes');
+    print('🔔 Timezone: ${tz.local.name}');
+    
+    // Only schedule if notification time is in the future
+    if (scheduledTime.isBefore(DateTime.now())) {
+      print('⚠️ Notification time is in the past, skipping: $scheduledTime');
+      print('🔔 ========================================');
+      return;
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'schedule_channel',
+      'Lịch học và thi',
+      channelDescription: 'Thông báo nhắc nhở về lịch học và lịch thi',
+      importance: Importance.high,
       priority: Priority.high,
-      playSound: true,
-      enableVibration: true,
+      showWhen: true,
     );
 
-    const DarwinNotificationDetails iOSNotificationDetails =
-        DarwinNotificationDetails(
+    const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
 
-    final NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: iOSNotificationDetails,
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
     );
 
-    final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
-    
-    // DEBUG LOGGING
-    print('=== NOTIFICATION SERVICE DEBUG ===');
-    print('Notification ID: $id');
-    print('Title: $title');
-    print('Scheduled for: $scheduledDate');
-    print('TZ Scheduled for: $tzScheduledDate');
-    print('==================================');
-
-    await _flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzScheduledDate,
-      notificationDetails,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
-    
-    // Verify it was scheduled
-    final pending = await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
-    print('📋 Pending notifications count: ${pending.length}');
-    for (var p in pending) {
-      print('  - ID: ${p.id}, Title: ${p.title}');
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+      
+      print('✅ Successfully scheduled notification #$id');
+      print('🔔 ========================================');
+    } catch (e) {
+      print('❌ Error scheduling notification: $e');
+      print('🔔 ========================================');
     }
-    
-    await _saveNotificationToHive(id, title, body, scheduledDate, payload);
   }
 
-  Future<void> _saveNotificationToHive(
-    int id,
-    String title,
-    String body,
-    DateTime createdAt,
-    String? payload,
-  ) async {
-    final type = payload?.split('_')[0] ?? 'unknown';
+  /// Cancel a specific notification
+  Future<void> cancelNotification(int id) async {
+    await _notifications.cancel(id);
+    print('🗑️ Cancelled notification #$id');
+  }
 
-    final notification = NotificationEntity(
-      id: id,
-      title: title,
-      body: body,
-      createdAt: createdAt,
-      isRead: false,
-      type: type,
+  /// Cancel all notifications
+  Future<void> cancelAllNotifications() async {
+    await _notifications.cancelAll();
+    print('🗑️ Cancelled all notifications');
+  }
+
+  /// Get list of pending notifications
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return await _notifications.pendingNotificationRequests();
+  }
+
+  /// Show immediate notification (for testing)
+  Future<void> showImmediateNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (!_isInitialized) await initialize();
+
+    const androidDetails = AndroidNotificationDetails(
+      'instant_channel',
+      'Thông báo ngay',
+      channelDescription: 'Thông báo hiển thị ngay lập tức',
+      importance: Importance.high,
+      priority: Priority.high,
     );
 
-    await _notificationsBox.put(id, notification);
-  }
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
 
-  Future<void> cancelNotification(int id) async {
-    await _flutterLocalNotificationsPlugin.cancel(id);
-    await _notificationsBox.delete(id);
-  }
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
-  Future<void> cancelAllNotifications() async {
-    await _flutterLocalNotificationsPlugin.cancelAll();
-    await _notificationsBox.clear();
-  }
-
-  // Helper method để kiểm tra các thông báo đã lên lịch
-  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    await _notifications.show(id, title, body, details, payload: payload);
   }
 }

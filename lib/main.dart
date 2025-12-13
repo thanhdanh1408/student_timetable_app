@@ -102,7 +102,7 @@ void main() async {
   
   // Khởi tạo NotificationService
   final notificationService = NotificationService();
-  await notificationService.init();
+  await notificationService.initialize();
 
   // Initialize demo data if storage is empty
   await initializeDemoData();
@@ -160,25 +160,40 @@ void main() async {
           )..load(), // Load data on creation
         ),
 
-        // Schedule
-        ChangeNotifierProvider(
+        // Schedule - needs NotificationSettingsProvider for custom reminder times
+        ChangeNotifierProxyProvider<NotificationSettingsProvider, ScheduleProvider>(
           create: (_) => ScheduleProvider(
             get: getSchedulesUsecase,
             add: addScheduleUsecase,
             update: updateScheduleUsecase,
             delete: deleteScheduleUsecase,
-            reminderService: reminderService,
-          )..load(), // Load data on creation
+          )..load(),
+          update: (_, notificationSettings, previousScheduleProvider) =>
+              previousScheduleProvider ?? ScheduleProvider(
+            get: getSchedulesUsecase,
+            add: addScheduleUsecase,
+            update: updateScheduleUsecase,
+            delete: deleteScheduleUsecase,
+            notificationSettings: notificationSettings,
+          ),
         ),
 
-        // Exam
-        ChangeNotifierProvider(
+        // Exam - needs NotificationSettingsProvider for custom reminder times
+        ChangeNotifierProxyProvider<NotificationSettingsProvider, ExamProvider>(
           create: (_) => ExamProvider(
             get: getExamsUsecase,
             add: addExamUsecase,
             update: updateExamUsecase,
             delete: deleteExamUsecase,
-          )..load(), // Load data on creation
+          )..load(),
+          update: (_, notificationSettings, previousExamProvider) =>
+              previousExamProvider ?? ExamProvider(
+            get: getExamsUsecase,
+            add: addExamUsecase,
+            update: updateExamUsecase,
+            delete: deleteExamUsecase,
+            notificationSettings: notificationSettings,
+          ),
         ),
 
         // Notifications

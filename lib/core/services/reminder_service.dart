@@ -100,7 +100,7 @@ class ReminderService {
         title: 'Nhắc nhở buổi học',
         body:
             '$reminderMinutes phút nữa bạn có môn $subjectName – Phòng $room',
-        scheduledDate: reminderTime,
+        scheduledTime: reminderTime, // Pass reminderTime directly
         payload: 'class_$id',
       );
       print('✅ Notification scheduled successfully');
@@ -109,7 +109,6 @@ class ReminderService {
     }
   }
 
-  // Schedule thông báo cho lịch thi
   Future<void> scheduleExamReminder({
     required int id,
     required String subjectName,
@@ -124,7 +123,7 @@ class ReminderService {
       title: 'Nhắc nhở lịch thi',
       body:
           '$reminderMinutes phút nữa bạn thi $subjectName – Phòng $room',
-      scheduledDate: reminderTime,
+      scheduledTime: reminderTime, // Pass reminderTime directly
       payload: 'exam_$id',
     );
   }

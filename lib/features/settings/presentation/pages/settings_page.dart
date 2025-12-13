@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
-import '../../../../core/providers/notification_settings_provider.dart';
+import '/core/services/notification_service.dart';
+import '/core/providers/notification_settings_provider.dart';
+import '../widgets/notification_settings_card.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -11,13 +13,12 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final notificationSettings =
-        context.watch<NotificationSettingsProvider>();
+    final notificationSettings = context.watch<NotificationSettingsProvider>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cài đặt", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.grey[800],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -70,149 +71,10 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
 
-            // Cài đặt thông báo
+            // CÀI ĐẶT THÔNG BÁO
             const Text("Thông báo", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 12),
-            Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.schedule),
-                    title: const Text("Nhắc nhở buổi học"),
-                    trailing: Switch(
-                      value: notificationSettings.enableScheduleNotifications,
-                      onChanged: (value) {
-                        notificationSettings
-                            .setEnableScheduleNotifications(value);
-                      },
-                    ),
-                  ),
-                  if (notificationSettings.enableScheduleNotifications)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Divider(),
-                          const Text(
-                            'Thời gian trước buổi học:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: NotificationSettingsProvider
-                                .reminderOptions
-                                .map(
-                              (minutes) {
-                                final isSelected =
-                                    notificationSettings
-                                            .scheduleReminderMinutes ==
-                                        minutes;
-                                return ChoiceChip(
-                                  label: Text(
-                                    notificationSettings
-                                        .getReminderText(minutes),
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  selected: isSelected,
-                                  onSelected: isSelected
-                                      ? null
-                                      : (_) {
-                                          notificationSettings
-                                              .setScheduleReminderMinutes(
-                                                  minutes);
-                                        },
-                                  backgroundColor: isSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  selectedColor: Colors.black,
-                                );
-                              },
-                            ).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.assignment),
-                    title: const Text("Nhắc nhở lịch thi"),
-                    trailing: Switch(
-                      value: notificationSettings.enableExamNotifications,
-                      onChanged: (value) {
-                        notificationSettings
-                            .setEnableExamNotifications(value);
-                      },
-                    ),
-                  ),
-                  if (notificationSettings.enableExamNotifications)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Divider(),
-                          const Text(
-                            'Thời gian trước lịch thi:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: NotificationSettingsProvider
-                                .reminderOptions
-                                .map(
-                              (minutes) {
-                                final isSelected =
-                                    notificationSettings
-                                            .examReminderMinutes ==
-                                        minutes;
-                                return ChoiceChip(
-                                  label: Text(
-                                    notificationSettings
-                                        .getReminderText(minutes),
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  selected: isSelected,
-                                  onSelected: isSelected
-                                      ? null
-                                      : (_) {
-                                          notificationSettings
-                                              .setExamReminderMinutes(
-                                                  minutes);
-                                        },
-                                  backgroundColor: isSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  selectedColor: Colors.black,
-                                );
-                              },
-                            ).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            const NotificationSettingsCard(),
 
             // Cài đặt chung
             const Text("Chung", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
@@ -221,6 +83,45 @@ class SettingsPage extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               child: Column(
                 children: [
+                  // TEST NOTIFICATION BUTTON
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active, color: Colors.orange),
+                    title: const Text("🧪 Test Notification"),
+                    subtitle: const Text("Nhấn để kiểm tra thông báo"),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      onPressed: () async {
+                        try {
+                          print('🧪 Testing notification...');
+                          await NotificationService().showImmediateNotification(
+                            id: 9999,
+                            title: '🧪 Test Notification',
+                            body: 'Hệ thống thông báo đang hoạt động!',
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('✅ Đã gửi test notification!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          print('❌ Error testing notification: $e');
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('❌ Lỗi: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Test', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.language),
                     title: const Text("Ngôn ngữ"),
