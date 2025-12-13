@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
+
+// Supabase
+import 'core/services/supabase_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/providers/auth_provider.dart' as auth_provider;
 
 // Entities (Hive)
 import 'features/subjects/domain/entities/subject_entity.dart';
@@ -55,6 +61,21 @@ import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+
+  // Initialize Supabase
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+  if (supabaseUrl != null && supabaseAnonKey != null) {
+    final supabaseService = SupabaseService();
+    await supabaseService.initialize(supabaseUrl, supabaseAnonKey);
+    print('✅ Supabase initialized');
+  } else {
+    print('⚠️ Supabase credentials not found in .env');
+  }
 
   // 1. Khởi tạo Hive
   await Hive.initFlutter();
@@ -158,8 +179,14 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // Auth
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // Auth - initialize and listen to auth state
+        ChangeNotifierProvider(
+          create: (_) {
+            final authProv = auth_provider.AuthProvider();
+            authProv.initialize();
+            return authProv;
+          },
+        ),
 
         // Notification Settings
         ChangeNotifierProvider(
