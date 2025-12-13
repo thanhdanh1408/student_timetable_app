@@ -13,7 +13,6 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final notificationSettings = context.watch<NotificationSettingsProvider>();
 
     return Scaffold(
       appBar: AppBar(

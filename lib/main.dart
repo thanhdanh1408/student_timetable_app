@@ -8,8 +8,6 @@ import 'app.dart';
 
 // Supabase
 import 'core/services/supabase_service.dart';
-import 'core/services/auth_service.dart';
-import 'core/providers/auth_provider.dart' as auth_provider;
 
 // Entities (Hive)
 import 'features/subjects/domain/entities/subject_entity.dart';
@@ -19,7 +17,6 @@ import 'features/notifications/domain/entities/notification_entity.dart';
 import 'features/settings/domain/entities/user_settings_entity.dart';
 
 // Providers
-import 'features/authentication/presentation/providers/auth_provider.dart';
 import 'features/subjects/presentation/providers/subjects_provider.dart';
 import 'features/schedule/presentation/providers/schedule_provider.dart';
 import 'features/exam/presentation/providers/exam_provider.dart';
@@ -27,6 +24,7 @@ import 'features/home/presentation/providers/home_provider.dart';
 import 'features/notifications/presentation/providers/notification_provider.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'core/providers/notification_settings_provider.dart';
+import 'core/providers/auth_provider.dart';
 
 // Repository Impl (Hive)
 import 'features/subjects/domain/repositories_impl/subjects_repository_impl.dart';
@@ -120,7 +118,6 @@ void main() async {
 
   // Khởi tạo SharedPreferences và ReminderService
   final prefs = await SharedPreferences.getInstance();
-  final reminderService = ReminderService(prefs);
   
   // Khởi tạo NotificationService
   final notificationService = NotificationService();
@@ -182,7 +179,7 @@ void main() async {
         // Auth - initialize and listen to auth state
         ChangeNotifierProvider(
           create: (_) {
-            final authProv = auth_provider.AuthProvider();
+            final authProv = AuthProvider();
             authProv.initialize();
             return authProv;
           },
