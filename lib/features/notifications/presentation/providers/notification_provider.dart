@@ -4,11 +4,13 @@ import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
 import '../../domain/usecases/add_notification_usecase.dart';
+import '../../domain/usecases/update_notification_usecase.dart';
 import '../../domain/usecases/delete_notification_usecase.dart';
 
 class NotificationProvider with ChangeNotifier {
   final GetNotificationsUsecase _getUsecase;
   final AddNotificationUsecase _addUsecase;
+  final UpdateNotificationUsecase _updateUsecase;
   final DeleteNotificationUsecase _deleteUsecase;
   final NotificationService notificationService;
 
@@ -19,10 +21,12 @@ class NotificationProvider with ChangeNotifier {
   NotificationProvider({
     required GetNotificationsUsecase get,
     required AddNotificationUsecase add,
+    required UpdateNotificationUsecase update,
     required DeleteNotificationUsecase delete,
     required this.notificationService,
   })  : _getUsecase = get,
         _addUsecase = add,
+        _updateUsecase = update,
         _deleteUsecase = delete;
 
   List<NotificationEntity> get notifications => _notifications;
@@ -69,8 +73,18 @@ class NotificationProvider with ChangeNotifier {
   Future<void> markAsRead(int index) async {
     try {
       if (index < _notifications.length) {
-        // For now, just delete old notification after reading
-        await delete(index);
+        final notification = _notifications[index];
+        final updatedNotification = NotificationEntity(
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
+          type: notification.type,
+          createdAt: notification.createdAt,
+          isRead: true, // Mark as read
+          relatedId: notification.relatedId,
+        );
+        await _updateUsecase(index, updatedNotification);
+        await load();
       }
     } catch (e) {
       _error = e.toString();

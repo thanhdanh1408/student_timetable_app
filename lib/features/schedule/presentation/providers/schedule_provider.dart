@@ -122,8 +122,8 @@ class ScheduleProvider with ChangeNotifier {
       return;
     }
 
-    // Get reminder time from settings (default to 10 minutes if settings not available)
-    final reminderMinutes = _notificationSettings?.scheduleReminderMinutes ?? 10;
+    // Get reminder time from settings (default to 15 minutes if settings not available)
+    final reminderMinutes = _notificationSettings?.scheduleReminderMinutes ?? 15;
 
     // Find next occurrence of this day of week
     final now = DateTime.now();
@@ -143,7 +143,7 @@ class ScheduleProvider with ChangeNotifier {
     print('📅 Current time: $now');
     print('📅 Minutes until notification: ${notificationTime.difference(now).inMinutes}');
 
-    // Schedule notification - _getNextOccurrence already handles finding next valid time
+    // Schedule main notification based on user's reminder preference
     await NotificationService().scheduleNotification(
       id: schedule.id!,
       title: '📚 Sắp đến giờ học: ${schedule.subjectName}',
@@ -152,6 +152,22 @@ class ScheduleProvider with ChangeNotifier {
       payload: 'schedule_${schedule.id}',
       type: 'schedule',
     );
+    
+    // Also schedule "approaching" notification 1 hour before the class
+    final approachingNotificationTime = nextOccurrence.subtract(Duration(hours: 1));
+    final approachingId = (schedule.id! * 1000) + 1; // Generate unique ID for approaching notification
+    
+    if (approachingNotificationTime.isAfter(now)) {
+      await NotificationService().scheduleNotification(
+        id: approachingId,
+        title: '⏰ Sắp đến giờ học: ${schedule.subjectName}',
+        body: 'Còn 1 giờ nữa • Phòng ${schedule.room} • ${schedule.startTime}',
+        scheduledTime: approachingNotificationTime,
+        payload: 'approaching_${schedule.id}',
+        type: 'approaching',
+      );
+      print('✅ Approaching notification scheduled for: $approachingNotificationTime');
+    }
     
     if (notificationTime.difference(now).inDays >= 7) {
       print('✅ Notification scheduled for next week: ${notificationTime.toString()}');
@@ -169,9 +185,6 @@ class ScheduleProvider with ChangeNotifier {
     final timeParts = timeStr.split(':');
     final hour = int.parse(timeParts[0]);
     final minute = int.parse(timeParts[1]);
-
-    // Get reminder time setting (default 10 minutes)
-    final reminderMinutes = _notificationSettings?.scheduleReminderMinutes ?? 10;
 
     // Convert from app's dayOfWeek (2-8: T2-CN) to Dart's weekday (1-7: Mon-Sun)
     // App: 2=Thứ 2, 3=Thứ 3, ..., 8=Chủ nhật

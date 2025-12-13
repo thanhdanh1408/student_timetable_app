@@ -29,6 +29,11 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
+  Future<void> update(int index, NotificationEntity notification) async {
+    await _box.putAt(index, notification);
+  }
+
+  @override
   Future<void> delete(int id) async {
     await _box.deleteAt(id);
   }

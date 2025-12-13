@@ -129,14 +129,18 @@ class _NotificationPageState extends State<NotificationPage>
         padding: const EdgeInsets.all(8),
         itemBuilder: (context, index) {
           final notification = notifications[index];
+          final isRead = notification.isRead;
+          
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            color: isRead ? Colors.grey[100] : Colors.white,
             child: ListTile(
               leading: Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _getNotificationColor(notification.type),
+                  color: _getNotificationColor(notification.type)
+                      .withOpacity(isRead ? 0.5 : 1.0),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -146,9 +150,10 @@ class _NotificationPageState extends State<NotificationPage>
               ),
               title: Text(
                 notification.title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                style: TextStyle(
+                  fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
                   fontSize: 15,
+                  color: isRead ? Colors.grey[600] : Colors.black,
                 ),
               ),
               subtitle: Column(
@@ -177,8 +182,15 @@ class _NotificationPageState extends State<NotificationPage>
               isThreeLine: true,
               trailing: PopupMenuButton(
                 itemBuilder: (context) => [
+                  if (!notification.isRead)
+                    PopupMenuItem(
+                      child: const Text('✓ Đánh dấu đã đọc'),
+                      onTap: () {
+                        context.read<NotificationProvider>().markAsRead(index);
+                      },
+                    ),
                   PopupMenuItem(
-                    child: const Text('Xóa'),
+                    child: const Text('🗑️ Xóa'),
                     onTap: () {
                       context.read<NotificationProvider>().delete(index);
                     },
@@ -198,6 +210,8 @@ class _NotificationPageState extends State<NotificationPage>
         return Colors.red;
       case 'schedule':
         return Colors.blue;
+      case 'approaching':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
@@ -209,6 +223,8 @@ class _NotificationPageState extends State<NotificationPage>
         return Icons.assignment;
       case 'schedule':
         return Icons.schedule;
+      case 'approaching':
+        return Icons.alarm;
       default:
         return Icons.notifications;
     }

@@ -44,6 +44,7 @@ import 'features/exam/domain/usecases/update_exam_usecase.dart';
 import 'features/exam/domain/usecases/delete_exam_usecase.dart';
 import 'features/notifications/domain/usecases/get_notifications_usecase.dart';
 import 'features/notifications/domain/usecases/add_notification_usecase.dart';
+import 'features/notifications/domain/usecases/update_notification_usecase.dart';
 import 'features/notifications/domain/usecases/delete_notification_usecase.dart';
 import 'features/settings/domain/usecases/get_settings_usecase.dart';
 import 'features/settings/domain/usecases/save_settings_usecase.dart';
@@ -147,6 +148,7 @@ void main() async {
 
   final getNotificationsUsecase = GetNotificationsUsecase(notificationRepo);
   final addNotificationUsecase = AddNotificationUsecase(notificationRepo);
+  final updateNotificationUsecase = UpdateNotificationUsecase(notificationRepo);
   final deleteNotificationUsecase = DeleteNotificationUsecase(notificationRepo);
 
   final getSettingsUsecase = GetSettingsUsecase(settingsRepo);
@@ -219,6 +221,7 @@ void main() async {
           create: (_) => NotificationProvider(
             get: getNotificationsUsecase,
             add: addNotificationUsecase,
+            update: updateNotificationUsecase,
             delete: deleteNotificationUsecase,
             notificationService: notificationService,
           )..load(), // Load data on creation
