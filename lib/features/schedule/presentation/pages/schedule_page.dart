@@ -1,7 +1,7 @@
 // lib/features/schedule/presentation/pages/schedule_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/schedule_provider.dart';
+import '../viewmodels/schedule_viewmodel.dart';
 import '../widgets/schedule_card.dart';
 import '../widgets/schedule_form_dialog.dart';
 
@@ -18,7 +18,7 @@ class _SchedulePageState extends State<SchedulePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ScheduleProvider>().load();
+      context.read<ScheduleViewModel>().load();
     });
   }
 
@@ -32,7 +32,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ScheduleProvider>();
+    final provider = context.watch<ScheduleViewModel>();
 
     // Filter logic
     var filtered = provider.schedules;
@@ -45,8 +45,8 @@ class _SchedulePageState extends State<SchedulePage> {
     
     if (_searchCtrl.text.isNotEmpty) {
       filtered = filtered.where((s) => 
-        s.subjectName.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ||
-        s.teacherName.toLowerCase().contains(_searchCtrl.text.toLowerCase())
+        (s.subjectName?.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ?? false) ||
+        (s.teacherName?.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ?? false)
       ).toList();
     }
 
@@ -57,10 +57,24 @@ class _SchedulePageState extends State<SchedulePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => ScheduleFormDialog(onSave: (s) => provider.add(s)),
-            ),
+            onPressed: () {
+              print('🔵 [SchedulePage] Add button clicked');
+              try {
+                showDialog(
+                  context: context,
+                  builder: (_) {
+                    print('🔵 [SchedulePage] Building ScheduleFormDialog');
+                    return ScheduleFormDialog(onSave: (s) {
+                      print('🔵 [SchedulePage] onSave called');
+                      provider.add(s);
+                    });
+                  },
+                );
+              } catch (e, stackTrace) {
+                print('❌ [SchedulePage] Error showing dialog: $e');
+                print('❌ StackTrace: $stackTrace');
+              }
+            },
           ),
         ],
       ),

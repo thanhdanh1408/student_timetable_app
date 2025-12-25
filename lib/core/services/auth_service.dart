@@ -11,6 +11,7 @@ class AuthService {
     required String fullName,
   }) async {
     try {
+      print('🔐 SignUp attempt: email=$email, password=${password.length} chars');
       final response = await _supabaseService.client.auth.signUp(
         email: email,
         password: password,
@@ -18,6 +19,8 @@ class AuthService {
           'full_name': fullName,
         },
       );
+
+      print('✅ SignUp success: user_id=${response.user?.id}');
 
       // Create user profile in users table
       if (response.user != null) {
@@ -30,7 +33,11 @@ class AuthService {
 
       return response;
     } on AuthException catch (e) {
-      throw Exception('Sign up failed: ${e.message}');
+      print('❌ SignUp failed: ${e.message} (status: ${e.statusCode})');
+      throw Exception('Đăng ký thất bại: ${e.message}');
+    } catch (e) {
+      print('❌ SignUp error: $e');
+      throw Exception('Lỗi đăng ký: $e');
     }
   }
 
@@ -40,13 +47,19 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('🔐 SignIn attempt: email=$email');
       final response = await _supabaseService.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      print('✅ SignIn success: user_id=${response.user?.id}');
       return response;
     } on AuthException catch (e) {
-      throw Exception('Sign in failed: ${e.message}');
+      print('❌ SignIn failed: ${e.message} (status: ${e.statusCode})');
+      throw Exception('Đăng nhập thất bại: ${e.message}');
+    } catch (e) {
+      print('❌ SignIn error: $e');
+      throw Exception('Lỗi đăng nhập: $e');
     }
   }
 
@@ -75,25 +88,31 @@ class AuthService {
     required String fullName,
   }) async {
     try {
+      print('📝 Creating user profile: userId=$userId, email=$email');
+      
       await _supabaseService.client.from('users').insert({
         'user_id': userId,
         'email': email,
         'fullname': fullName,
+        'created_at': DateTime.now().toIso8601String(),
       });
 
+      print('✅ User profile created');
+
       // Create default settings
-      await _supabaseService.client.from('settings').insert({
+      await _supabaseService.client.from('user_settings').insert({
         'user_id': userId,
-        'theme_mode': 'light',
-        'notify_before': 15,
+        'dark_mode': false,
+        'notifications': true,
         'language': 'vi',
-        'schedule_reminder_minutes': 15,
-        'exam_reminder_minutes': 60,
-        'enable_schedule_notifications': true,
-        'enable_exam_notifications': true,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       });
+
+      print('✅ User settings created');
     } catch (e) {
-      print('Error creating user profile: $e');
+      print('❌ Error creating user profile: $e');
+      rethrow;
     }
   }
 

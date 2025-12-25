@@ -5,5 +5,5 @@ import '../repositories/schedule_repository.dart';
 class AddScheduleUsecase {
   final ScheduleRepository repository;
   AddScheduleUsecase(this.repository);
-  Future<int> call(ScheduleEntity schedule) => repository.add(schedule);
+  Future<String> call(ScheduleEntity schedule) => repository.add(schedule);
 }

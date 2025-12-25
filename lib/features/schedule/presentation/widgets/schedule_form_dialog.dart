@@ -1,7 +1,7 @@
 // lib/features/schedule/presentation/widgets/schedule_form_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../subjects/presentation/providers/subjects_provider.dart';
+import '../../../subjects/presentation/viewmodels/subjects_viewmodel.dart';
 import '../../../subjects/domain/entities/subject_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 
@@ -18,40 +18,75 @@ class ScheduleFormDialog extends StatefulWidget {
 class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   final _formKey = GlobalKey<FormState>();
   SubjectEntity? _selectedSubject;
-  late TextEditingController _roomCtrl;
+  late TextEditingController _locationCtrl;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   int? _dayOfWeek;
 
+  bool _didInitFromData = false;
+
   @override
   void initState() {
     super.initState();
-    final subjects = context.read<SubjectsProvider>().subjects;
+    _locationCtrl = TextEditingController();
 
-    if (subjects.isEmpty) return;
-
-    if (widget.schedule != null) {
-      _selectedSubject = subjects.firstWhere(
-        (s) => s.subjectName == widget.schedule!.subjectName,
-        orElse: () => subjects.first,
-      );
-      _roomCtrl = TextEditingController(text: widget.schedule!.room);
-      _startTime = _parseTime(widget.schedule!.startTime);
-      _endTime = _parseTime(widget.schedule!.endTime);
-      _dayOfWeek = widget.schedule!.dayOfWeek;
-    } else {
-      // Mặc định chọn subject đầu tiên
-      _selectedSubject = subjects.first;
-      _roomCtrl = TextEditingController(text: subjects.first.room);
-      _startTime = _parseTime(subjects.first.startTime);
-      _endTime = _parseTime(subjects.first.endTime);
-      _dayOfWeek = subjects.first.dayOfWeek;
-    }
+    // Provide safe defaults; we'll sync actual values in didChangeDependencies.
+    _startTime = const TimeOfDay(hour: 7, minute: 30);
+    _endTime = const TimeOfDay(hour: 9, minute: 0);
+    _dayOfWeek = 2;
   }
 
-  TimeOfDay _parseTime(String time) {
-    final parts = time.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitFromData) return;
+
+    final subjects = context.read<SubjectsViewModel>().subjects;
+
+    if (widget.schedule != null) {
+      final schedule = widget.schedule!;
+
+      // Subject
+      if (subjects.isNotEmpty) {
+        _selectedSubject = subjects.firstWhere(
+          (s) => s.id == schedule.subjectId,
+          orElse: () => subjects.first,
+        );
+      } else {
+        _selectedSubject = null;
+      }
+
+      // Location & day
+      _locationCtrl.text = schedule.location ?? '';
+      _dayOfWeek = schedule.dayOfWeek ?? _dayOfWeek;
+
+      // Times
+      _startTime = _parseTime(schedule.startTime);
+      _endTime = _parseTime(schedule.endTime);
+
+      // If subjects aren't loaded yet, wait for next didChangeDependencies.
+      if (subjects.isEmpty && schedule.subjectId != null) {
+        return;
+      }
+    } else {
+      // New schedule: choose defaults from first subject if available
+      if (subjects.isNotEmpty) {
+        _selectedSubject = subjects.first;
+      }
+    }
+
+    _didInitFromData = true;
+  }
+
+  TimeOfDay _parseTime(String? time) {
+    if (time == null) return const TimeOfDay(hour: 7, minute: 0);
+    try {
+      final parts = time.split(':');
+      if (parts.length < 2) return const TimeOfDay(hour: 7, minute: 0);
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (e) {
+      return const TimeOfDay(hour: 7, minute: 0);
+    }
   }
 
   String _formatTime(TimeOfDay? time) => time == null ? "Chưa chọn" : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
@@ -74,13 +109,13 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
 
   @override
   void dispose() {
-    _roomCtrl.dispose();
+    _locationCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final subjects = context.watch<SubjectsProvider>().subjects;
+    final subjects = context.watch<SubjectsViewModel>().subjects;
 
     return AlertDialog(
       title: Text(widget.schedule == null ? "Thêm buổi học" : "Chỉnh sửa buổi học"),
@@ -88,19 +123,16 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<SubjectEntity>(
                 value: _selectedSubject,
-                decoration: const InputDecoration(labelText: "Chọn môn học", border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: "Chọn môn học*", border: OutlineInputBorder()),
                 items: subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.subjectName))).toList(),
                 onChanged: (s) {
-                  setState(() => _selectedSubject = s);
-                  if (s != null) {
-                    _roomCtrl.text = s.room;
-                    _startTime = _parseTime(s.startTime);
-                    _endTime = _parseTime(s.endTime);
-                    _dayOfWeek = s.dayOfWeek;
-                  }
+                  setState(() {
+                    _selectedSubject = s;
+                  });
                 },
                 validator: (v) => v == null ? "Chọn môn học" : null,
               ),
@@ -121,36 +153,23 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 validator: (v) => v == null ? "Chọn thứ" : null,
               ),
               const SizedBox(height: 16),
-              if (_selectedSubject != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.indigo[50], borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person, color: Colors.indigo),
-                      const SizedBox(width: 8),
-                      Text("GV: ${_selectedSubject!.teacherName}"),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 16),
               TextFormField(
-                controller: _roomCtrl,
-                decoration: const InputDecoration(labelText: "Phòng học", border: OutlineInputBorder()),
+                controller: _locationCtrl,
+                decoration: const InputDecoration(labelText: "Địa điểm", border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
-              InkWell(
+              GestureDetector(
                 onTap: () => _pickTime(true),
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: "Giờ bắt đầu", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Giờ bắt đầu*", border: OutlineInputBorder()),
                   child: Text(_formatTime(_startTime)),
                 ),
               ),
-              const SizedBox(height: 12),
-              InkWell(
+              const SizedBox(height: 16),
+              GestureDetector(
                 onTap: () => _pickTime(false),
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: "Giờ kết thúc", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Giờ kết thúc*", border: OutlineInputBorder()),
                   child: Text(_formatTime(_endTime)),
                 ),
               ),
@@ -159,25 +178,71 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Hủy", style: TextStyle(color: Colors.black)),
+        ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
           onPressed: () async {
-            if (_formKey.currentState!.validate() && _selectedSubject != null && _startTime != null && _endTime != null && _dayOfWeek != null) {
-              final schedule = ScheduleEntity(
-                id: widget.schedule?.id,
-                subjectName: _selectedSubject!.subjectName,
-                teacherName: _selectedSubject!.teacherName,
-                room: _roomCtrl.text.isEmpty ? _selectedSubject!.room : _roomCtrl.text,
-                dayOfWeek: _dayOfWeek!,
-                startTime: _formatTime(_startTime),
-                endTime: _formatTime(_endTime),
-                semester: _selectedSubject!.semester,
-              );
-              await widget.onSave(schedule);
-              if (mounted) Navigator.pop(context);
+            if (_formKey.currentState!.validate()) {
+              if (_startTime == null || _endTime == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vui lòng chọn giờ bắt đầu/kết thúc'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
+              final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
+              if (endMinutes <= startMinutes) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Giờ kết thúc phải sau giờ bắt đầu'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              try {
+                final schedule = ScheduleEntity(
+                  id: widget.schedule?.id,
+                  subjectId: _selectedSubject?.id,
+                  subjectName: _selectedSubject?.subjectName,
+                  teacherName: _selectedSubject?.teacherName,
+                  dayOfWeek: _dayOfWeek,
+                  startTime: _formatTime(_startTime),
+                  endTime: _formatTime(_endTime),
+                  location: _locationCtrl.text.trim(),
+                  color: _selectedSubject?.color,
+                  isEnabled: true,
+                );
+                await widget.onSave(schedule);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Lỗi: ${e.toString()}"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
           },
-          child: Text(widget.schedule == null ? "Thêm" : "Lưu"),
+          child: Text(
+            widget.schedule == null ? "Thêm" : "Lưu",
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       ],
     );

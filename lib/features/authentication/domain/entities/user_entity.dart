@@ -1,20 +1,8 @@
 // lib/features/authentication/domain/entities/user_entity.dart
-import 'package:hive/hive.dart';
-
-part 'user_entity.g.dart'; // ĐÚNG TÊN FILE
-
-@HiveType(typeId: 0)
-class UserEntity extends HiveObject {
-  @HiveField(0)
-  final int userId;
-
-  @HiveField(1)
+class UserEntity {
+  final String userId; // UUID from Supabase
   final String fullname;
-
-  @HiveField(2)
   final String email;
-
-  @HiveField(3)
   final String? phone;
 
   UserEntity({
@@ -26,10 +14,19 @@ class UserEntity extends HiveObject {
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
     return UserEntity(
-      userId: json['user_id'],
-      fullname: json['fullname'],
-      email: json['email'],
-      phone: json['phone'],
+      userId: json['user_id'] as String,
+      fullname: json['fullname'] as String,
+      email: json['email'] as String,
+      phone: json['phone'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'fullname': fullname,
+      'email': email,
+      'phone': phone,
+    };
   }
 }

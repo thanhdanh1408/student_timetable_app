@@ -133,6 +133,20 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Convenience method for login (alias for signIn)
+  Future<bool> login(String email, String password) async {
+    return signIn(email: email, password: password);
+  }
+
+  /// Convenience method for register (alias for signUp)
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String fullName,
+  }) async {
+    return signUp(email: email, password: password, fullName: fullName);
+  }
+
   /// Clear error
   void clearError() {
     _error = null;

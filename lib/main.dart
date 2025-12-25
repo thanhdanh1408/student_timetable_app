@@ -1,37 +1,30 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
+import 'core/config/app_routes.dart';
 
 // Supabase
 import 'core/services/supabase_service.dart';
 
-// Entities (Hive)
-import 'features/subjects/domain/entities/subject_entity.dart';
-import 'features/schedule/domain/entities/schedule_entity.dart';
-import 'features/exam/domain/entities/exam_entity.dart';
-import 'features/notifications/domain/entities/notification_entity.dart';
-import 'features/settings/domain/entities/user_settings_entity.dart';
-
 // Providers
-import 'features/subjects/presentation/providers/subjects_provider.dart';
-import 'features/schedule/presentation/providers/schedule_provider.dart';
-import 'features/exam/presentation/providers/exam_provider.dart';
-import 'features/home/presentation/providers/home_provider.dart';
-import 'features/notifications/presentation/providers/notification_provider.dart';
-import 'features/settings/presentation/providers/settings_provider.dart';
+import 'features/subjects/presentation/viewmodels/subjects_viewmodel.dart';
+import 'features/schedule/presentation/viewmodels/schedule_viewmodel.dart';
+import 'features/exam/presentation/viewmodels/exam_viewmodel.dart';
+import 'features/home/presentation/viewmodels/home_viewmodel.dart';
+import 'features/notifications/presentation/viewmodels/notification_viewmodel.dart';
+import 'features/notifications/domain/entities/notification_entity.dart';
+import 'features/settings/presentation/viewmodels/settings_viewmodel.dart';
 import 'core/providers/notification_settings_provider.dart';
 import 'core/providers/auth_provider.dart';
 
-// Repository Impl (Hive)
-import 'features/subjects/domain/repositories_impl/subjects_repository_impl.dart';
-import 'features/schedule/domain/repositories_impl/schedule_repository_impl.dart';
-import 'features/exam/domain/repositories_impl/exam_repository_impl.dart';
-import 'features/notifications/domain/repositories_impl/notification_repository_impl.dart';
-import 'features/settings/domain/repositories_impl/settings_repository_impl.dart';
+// Repository Impl (Data layer)
+import 'features/subjects/data/repositories/subjects_repository_impl.dart';
+import 'features/schedule/data/repositories/schedule_repository_impl.dart';
+import 'features/exam/data/repositories/exam_repository_impl.dart';
+import 'features/notifications/data/repositories/notification_repository_impl.dart';
+import 'features/settings/data/repositories/settings_repository_impl.dart';
 
 // Usecases
 import 'features/subjects/domain/usecases/get_subjects_usecase.dart';
@@ -52,9 +45,7 @@ import 'features/notifications/domain/usecases/update_notification_usecase.dart'
 import 'features/notifications/domain/usecases/delete_notification_usecase.dart';
 import 'features/settings/domain/usecases/get_settings_usecase.dart';
 import 'features/settings/domain/usecases/save_settings_usecase.dart';
-import 'utils/demo_data_initializer.dart';
 import 'core/services/background_task_handler.dart';
-import 'core/services/reminder_service.dart';
 import 'core/services/notification_service.dart';
 
 void main() async {
@@ -75,78 +66,21 @@ void main() async {
     print('⚠️ Supabase credentials not found in .env');
   }
 
-  // 1. Khởi tạo Hive
-  await Hive.initFlutter();
+  // Khởi tạo NotificationService
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  
+  // Khởi tạo Background Task Handler
+  final backgroundTaskHandler = BackgroundTaskHandler();
+  await backgroundTaskHandler.init();
+  await backgroundTaskHandler.registerTasks();
 
-  // Đăng ký adapters
-  if (!Hive.isAdapterRegistered(0)) {
-    Hive.registerAdapter(SubjectEntityAdapter());
-  }
-  if (!Hive.isAdapterRegistered(1)) {
-    Hive.registerAdapter(ScheduleEntityAdapter());
-  }
-  if (!Hive.isAdapterRegistered(2)) {
-    Hive.registerAdapter(ExamEntityAdapter());
-  }
-  if (!Hive.isAdapterRegistered(3)) {
-    Hive.registerAdapter(NotificationEntityAdapter());
-  }
-  if (!Hive.isAdapterRegistered(4)) {
-    Hive.registerAdapter(UserSettingsEntityAdapter());
-  }
-
-  // Mở Hive boxes
-  await Hive.openBox('auth_user');
-  await Hive.openBox<SubjectEntity>('subjects_box');
-  await Hive.openBox<ScheduleEntity>('schedules_box');
-  await Hive.openBox<ExamEntity>('exams_box');
-  await Hive.openBox<NotificationEntity>('notifications_box');
-  await Hive.openBox<UserSettingsEntity>('settings_box');
-
-  // 2. Khởi tạo Repository (Hive)
+  // Khởi tạo Repositories (Supabase only)
   final subjectsRepo = SubjectsRepositoryImpl();
   final scheduleRepo = ScheduleRepositoryImpl();
   final examRepo = ExamRepositoryImpl();
   final notificationRepo = NotificationRepositoryImpl();
   final settingsRepo = SettingsRepositoryImpl();
-
-  await subjectsRepo.init();
-  await scheduleRepo.init();
-  await examRepo.init();
-  await notificationRepo.init();
-  await settingsRepo.init();
-
-  // Khởi tạo SharedPreferences và ReminderService
-  final prefs = await SharedPreferences.getInstance();
-  
-  // Khởi tạo NotificationService
-  final notificationService = NotificationService();
-  await notificationService.initialize();
-  
-  // Set callback để lưu notification vào database
-  notificationService.onNotificationScheduled = (id, title, body, type) async {
-    try {
-      final notification = NotificationEntity(
-        id: id,
-        title: title,
-        body: body,
-        type: type,
-        createdAt: DateTime.now(),
-        isRead: false,
-      );
-      await notificationRepo.add(notification);
-      print('✅ Notification saved to database: $id');
-    } catch (e) {
-      print('❌ Error saving notification to database: $e');
-    }
-  };
-
-  // Initialize demo data if storage is empty
-  await initializeDemoData();
-  // Khởi tạo và đăng ký background tasks
-  final backgroundTaskHandler = BackgroundTaskHandler();
-  await backgroundTaskHandler.init();
-  await backgroundTaskHandler.registerTasks();
 
   // 3. Khởi tạo Usecases
   final getSubjectsUsecase = GetSubjectsUsecase(subjectsRepo);
@@ -169,20 +103,43 @@ void main() async {
   final updateNotificationUsecase = UpdateNotificationUsecase(notificationRepo);
   final deleteNotificationUsecase = DeleteNotificationUsecase(notificationRepo);
 
+  // Persist scheduled notifications to Supabase immediately (with their due time).
+  // This keeps the in-app list consistent even if the Notifications page is never opened.
+  notificationService.onNotificationScheduled = (relatedId, title, body, type, scheduledFor) async {
+    try {
+      await addNotificationUsecase(
+        NotificationEntity(
+          title: title,
+          body: body,
+          type: type,
+          createdAt: DateTime.now(),
+          scheduledFor: scheduledFor,
+          relatedId: relatedId,
+          isRead: false,
+        ),
+      );
+    } catch (e) {
+      print('❌ Error persisting notification to Supabase: $e');
+    }
+  };
+
   final getSettingsUsecase = GetSettingsUsecase(settingsRepo);
   final saveSettingsUsecase = SaveSettingsUsecase(settingsRepo);
 
-  // 4. Chạy app
+  // 4. Create AuthProvider first
+  final authProvider = AuthProvider();
+  await authProvider.initialize();
+
+  // 5. Initialize routing with auth provider
+  AppRoutes.initialize(authProvider);
+
+  // 6. Chạy app
   runApp(
     MultiProvider(
       providers: [
-        // Auth - initialize and listen to auth state
-        ChangeNotifierProvider(
-          create: (_) {
-            final authProv = AuthProvider();
-            authProv.initialize();
-            return authProv;
-          },
+        // Auth - use the already-initialized provider
+        ChangeNotifierProvider.value(
+          value: authProvider,
         ),
 
         // Notification Settings
@@ -196,7 +153,7 @@ void main() async {
 
         // Subjects
         ChangeNotifierProvider(
-          create: (_) => SubjectsProvider(
+          create: (_) => SubjectsViewModel(
             get: getSubjectsUsecase,
             add: addSubjectUsecase,
             update: updateSubjectUsecase,
@@ -205,15 +162,15 @@ void main() async {
         ),
 
         // Schedule - needs NotificationSettingsProvider for custom reminder times
-        ChangeNotifierProxyProvider<NotificationSettingsProvider, ScheduleProvider>(
-          create: (_) => ScheduleProvider(
+        ChangeNotifierProxyProvider<NotificationSettingsProvider, ScheduleViewModel>(
+          create: (_) => ScheduleViewModel(
             get: getSchedulesUsecase,
             add: addScheduleUsecase,
             update: updateScheduleUsecase,
             delete: deleteScheduleUsecase,
           )..load(),
-          update: (_, notificationSettings, previousScheduleProvider) =>
-              previousScheduleProvider ?? ScheduleProvider(
+          update: (_, notificationSettings, previousScheduleViewModel) =>
+              previousScheduleViewModel ?? ScheduleViewModel(
             get: getSchedulesUsecase,
             add: addScheduleUsecase,
             update: updateScheduleUsecase,
@@ -223,15 +180,15 @@ void main() async {
         ),
 
         // Exam - needs NotificationSettingsProvider for custom reminder times
-        ChangeNotifierProxyProvider<NotificationSettingsProvider, ExamProvider>(
-          create: (_) => ExamProvider(
+        ChangeNotifierProxyProvider<NotificationSettingsProvider, ExamViewModel>(
+          create: (_) => ExamViewModel(
             get: getExamsUsecase,
             add: addExamUsecase,
             update: updateExamUsecase,
             delete: deleteExamUsecase,
           )..load(),
-          update: (_, notificationSettings, previousExamProvider) =>
-              previousExamProvider ?? ExamProvider(
+          update: (_, notificationSettings, previousExamViewModel) =>
+              previousExamViewModel ?? ExamViewModel(
             get: getExamsUsecase,
             add: addExamUsecase,
             update: updateExamUsecase,
@@ -242,7 +199,7 @@ void main() async {
 
         // Notifications
         ChangeNotifierProvider(
-          create: (_) => NotificationProvider(
+          create: (_) => NotificationViewModel(
             get: getNotificationsUsecase,
             add: addNotificationUsecase,
             update: updateNotificationUsecase,
@@ -253,24 +210,26 @@ void main() async {
 
         // Settings
         ChangeNotifierProvider(
-          create: (_) => SettingsProvider(
+          create: (_) => SettingsViewModel(
             get: getSettingsUsecase,
             save: saveSettingsUsecase,
           ),
         ),
 
         // Home - tạo với đầy đủ các provider khác
-        ChangeNotifierProxyProvider3<SubjectsProvider, ScheduleProvider, ExamProvider, HomeProvider>(
-          create: (_) => HomeProvider(
-            subjectsProvider: null,
-            scheduleProvider: null,
-            examProvider: null,
+        ChangeNotifierProxyProvider4<SubjectsViewModel, ScheduleViewModel, ExamViewModel, NotificationViewModel, HomeViewModel>(
+          create: (_) => HomeViewModel(
+            subjectsViewModel: null,
+            scheduleViewModel: null,
+            examViewModel: null,
+            notificationViewModel: null,
           ),
-          update: (_, subjectsProvider, scheduleProvider, examProvider, previousHomeProvider) =>
-              HomeProvider(
-            subjectsProvider: subjectsProvider,
-            scheduleProvider: scheduleProvider,
-            examProvider: examProvider,
+          update: (_, subjectsViewModel, scheduleViewModel, examViewModel, notificationViewModel, previousHomeViewModel) =>
+              HomeViewModel(
+            subjectsViewModel: subjectsViewModel,
+            scheduleViewModel: scheduleViewModel,
+            examViewModel: examViewModel,
+            notificationViewModel: notificationViewModel,
           ),
         ),
       ],

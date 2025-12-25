@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/schedule_entity.dart';
-import '../providers/schedule_provider.dart';
+import '../viewmodels/schedule_viewmodel.dart';
 
 class ScheduleTimetable extends StatelessWidget {
   const ScheduleTimetable({super.key});
@@ -17,7 +17,7 @@ class ScheduleTimetable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final schedules = context.watch<ScheduleProvider>().schedules;
+    final schedules = context.watch<ScheduleViewModel>().schedules;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -57,9 +57,9 @@ class ScheduleTimetable extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(s.subjectName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            Text(s.subjectName ?? "N/A", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                             Text("${s.startTime}-${s.endTime}", style: const TextStyle(fontSize: 10)),
-                            Text(s.room, style: const TextStyle(fontSize: 10)),
+                            Text(s.location ?? "N/A", style: const TextStyle(fontSize: 10)),
                           ],
                         ),
                       ),
@@ -78,15 +78,14 @@ class ScheduleTimetable extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(s.subjectName),
+        title: Text(s.subjectName ?? "N/A"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Giảng viên: ${s.teacherName}"),
-            Text("Phòng: ${s.room}"),
+            Text("Giảng viên: ${s.teacherName ?? "N/A"}"),
+            Text("Phòng: ${s.location ?? "N/A"}"),
             Text("Thời gian: ${s.startTime} - ${s.endTime}"),
-            Text("Học kỳ: ${s.semester}"),
           ],
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Đóng"))],

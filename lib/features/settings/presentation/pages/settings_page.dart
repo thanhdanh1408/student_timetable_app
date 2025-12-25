@@ -2,9 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../authentication/presentation/providers/auth_provider.dart';
+import '/core/providers/auth_provider.dart';
 import '/core/services/notification_service.dart';
-import '/core/providers/notification_settings_provider.dart';
 import '../widgets/notification_settings_card.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -12,53 +11,53 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Cài đặt", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.grey[800],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Thông tin người dùng
-            Card(
-              margin: const EdgeInsets.only(bottom: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Thông tin tài khoản", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    Row(
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("Cài đặt", style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.black,
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Thông tin người dùng
+                Card(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.indigo,
-                          child: Text(
-                            (auth.user?.displayName?.isNotEmpty ?? false)
-                                ? auth.user!.displayName![0].toUpperCase()
-                                : "S",
-                            style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                auth.user?.displayName ?? "Sinh viên",
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        const Text("Thông tin tài khoản", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.indigo,
+                              child: Text(
+                                (auth.userEmail?.isNotEmpty ?? false)
+                                    ? auth.userEmail![0].toUpperCase()
+                                    : "S",
+                                style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                auth.user?.email ?? "",
-                                style: TextStyle(color: Colors.grey[600]),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    auth.userEmail?.split('@').first ?? "Sinh viên",
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    auth.userEmail ?? "",
+                                    style: TextStyle(color: Colors.grey[600]),
                               ),
                             ],
                           ),
@@ -93,7 +92,7 @@ class SettingsPage extends StatelessWidget {
                         try {
                           print('🧪 Testing notification...');
                           await NotificationService().showImmediateNotification(
-                            id: 9999,
+                            id: 'test_notification_9999',
                             title: '🧪 Test Notification',
                             body: 'Hệ thống thông báo đang hoạt động!',
                           );
@@ -206,7 +205,7 @@ class SettingsPage extends StatelessWidget {
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                           onPressed: () async {
                             Navigator.pop(context);
-                            await context.read<AuthProvider>().logout();
+                            await context.read<AuthProvider>().signOut();
                             if (context.mounted) {
                               context.go('/login');
                             }
@@ -223,9 +222,11 @@ class SettingsPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-          ],
-        ),
-      ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -16,61 +16,30 @@ class _AddEditSubjectFormState extends State<AddEditSubjectForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameCtrl;
   late TextEditingController _teacherCtrl;
-  late TextEditingController _roomCtrl;
-  late TextEditingController _semesterCtrl;
   int _credit = 3;
-  int? _dayOfWeek;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
+  Color _selectedColor = Colors.blue;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.subject?.subjectName ?? '');
     _teacherCtrl = TextEditingController(text: widget.subject?.teacherName ?? '');
-    _roomCtrl = TextEditingController(text: widget.subject?.room ?? '');
-    _semesterCtrl = TextEditingController(text: widget.subject?.semester ?? 'HK1.2024-2025');
     _credit = widget.subject?.credit ?? 3;
-    _dayOfWeek = widget.subject?.dayOfWeek;
-    _startTime = widget.subject != null ? _parseTime(widget.subject!.startTime) : null;
-    _endTime = widget.subject != null ? _parseTime(widget.subject!.endTime) : null;
+    // Parse color from hex string if available
+    if (widget.subject?.color != null) {
+      try {
+        _selectedColor = Color(int.parse(widget.subject!.color!.replaceFirst('#', '0xFF')));
+      } catch (e) {
+        _selectedColor = Colors.blue;
+      }
+    }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _teacherCtrl.dispose();
-    _roomCtrl.dispose();
-    _semesterCtrl.dispose();
     super.dispose();
-  }
-
-  TimeOfDay _parseTime(String time) {
-    final parts = time.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-  }
-
-  String _formatTime(TimeOfDay? time) {
-    if (time == null) return "Chưa chọn";
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _pickTime(bool isStart) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isStart
-          ? (_startTime ?? const TimeOfDay(hour: 7, minute: 0))
-          : (_endTime ?? const TimeOfDay(hour: 9, minute: 0)),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startTime = picked;
-        } else {
-          _endTime = picked;
-        }
-      });
-    }
   }
 
   @override
@@ -118,61 +87,90 @@ class _AddEditSubjectFormState extends State<AddEditSubjectForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phòng học
-                TextFormField(
-                  controller: _roomCtrl,
-                  decoration: InputDecoration(
-                    labelText: "Phòng học",
-                    prefixIcon: const Icon(Icons.location_on),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Thứ trong tuần
-                DropdownButtonFormField<int>(
-                  value: _dayOfWeek,
-                  decoration: InputDecoration(
-                    labelText: "Thứ học",
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  items: [
-                    for (int i = 2; i <= 8; i++)
-                      DropdownMenuItem(
-                        value: i,
-                        child: Text(i == 8 ? "Chủ nhật" : "Thứ $i"),
+                // Chọn màu sắc
+                InkWell(
+                  onTap: () async {
+                    final colors = [
+                      Colors.red,
+                      Colors.pink,
+                      Colors.purple,
+                      Colors.deepPurple,
+                      Colors.indigo,
+                      Colors.blue,
+                      Colors.lightBlue,
+                      Colors.cyan,
+                      Colors.teal,
+                      Colors.green,
+                      Colors.lightGreen,
+                      Colors.lime,
+                      Colors.yellow,
+                      Colors.amber,
+                      Colors.orange,
+                      Colors.deepOrange,
+                      Colors.brown,
+                      Colors.grey,
+                      Colors.blueGrey,
+                    ];
+                    final Color? picked = await showDialog<Color>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Chọn màu sắc'),
+                        content: SizedBox(
+                          width: double.maxFinite,
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 5,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: colors.length,
+                            itemBuilder: (context, index) {
+                              return InkWell(
+                                onTap: () => Navigator.pop(context, colors[index]),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: colors[index],
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: _selectedColor == colors[index]
+                                          ? Colors.black
+                                          : Colors.transparent,
+                                      width: 3,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                  ],
-                  onChanged: (v) => setState(() => _dayOfWeek = v),
-                  validator: (v) => v == null ? "Vui lòng chọn thứ" : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Giờ bắt đầu
-                InkWell(
-                  onTap: () => _pickTime(true),
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedColor = picked);
+                    }
+                  },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: "Giờ bắt đầu",
-                      prefixIcon: const Icon(Icons.access_time),
+                      labelText: "Màu sắc",
+                      prefixIcon: const Icon(Icons.palette),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(_formatTime(_startTime)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Giờ kết thúc
-                InkWell(
-                  onTap: () => _pickTime(false),
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: "Giờ kết thúc",
-                      prefixIcon: const Icon(Icons.access_time),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _selectedColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Nhấn để chọn màu'),
+                      ],
                     ),
-                    child: Text(_formatTime(_endTime)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -188,17 +186,6 @@ class _AddEditSubjectFormState extends State<AddEditSubjectForm> {
                   items: [1, 2, 3, 4, 5].map((c) => DropdownMenuItem(value: c, child: Text("$c tín chỉ"))).toList(),
                   onChanged: (v) => setState(() => _credit = v!),
                 ),
-                const SizedBox(height: 16),
-
-                // Học kỳ
-                TextFormField(
-                  controller: _semesterCtrl,
-                  decoration: InputDecoration(
-                    labelText: "Học kỳ",
-                    prefixIcon: const Icon(Icons.school),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
               ],
             ),
           ),
@@ -212,19 +199,12 @@ class _AddEditSubjectFormState extends State<AddEditSubjectForm> {
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
           onPressed: () {
-            if (_formKey.currentState!.validate() &&
-                _startTime != null &&
-                _endTime != null &&
-                _dayOfWeek != null) {
+            if (_formKey.currentState!.validate()) {
               final subject = SubjectEntity(
                 id: widget.subject?.id,
                 subjectName: _nameCtrl.text.trim(),
                 teacherName: _teacherCtrl.text.trim(),
-                room: _roomCtrl.text.trim(),
-                dayOfWeek: _dayOfWeek!,
-                startTime: _formatTime(_startTime),
-                endTime: _formatTime(_endTime),
-                semester: _semesterCtrl.text.trim(),
+                color: '#${_selectedColor.value.toRadixString(16).substring(2)}',
                 credit: _credit,
               );
               widget.onSave(subject);

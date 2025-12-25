@@ -3,7 +3,7 @@ import '../entities/exam_entity.dart';
 
 abstract class ExamRepository {
   Future<List<ExamEntity>> getAll();
-  Future<void> add(ExamEntity exam);
+  Future<String> add(ExamEntity exam);
   Future<void> update(ExamEntity exam);
-  Future<void> delete(int id);
+  Future<void> delete(String id);
 }

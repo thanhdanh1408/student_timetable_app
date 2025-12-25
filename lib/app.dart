@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'core/config/app_routes.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_task_handler.dart';
-import 'features/authentication/presentation/providers/auth_provider.dart';
 
 // AppWidget class moved from main.dart
 class AppWidget extends StatefulWidget {
@@ -37,9 +35,8 @@ class _AppWidgetState extends State<AppWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Tạo router với AuthProvider
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final router = createAppRouter(authProvider);
+    // Get router from AppRoutes
+    final router = AppRoutes.router;
 
     return MaterialApp.router(
       title: 'Student Timetable',

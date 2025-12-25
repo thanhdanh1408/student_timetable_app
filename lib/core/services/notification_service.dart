@@ -1,7 +1,7 @@
 // lib/core/services/notification_service.dart
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -11,14 +11,16 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
   
-  // Callback to save notification to database
-  Function(int id, String title, String body, String type)? onNotificationScheduled;
+  // Callback to save notification to database.
+  // relatedId: schedule/exam id
+  // scheduledFor: when the notification is intended to be shown
+  Future<void> Function(String relatedId, String title, String body, String type, DateTime scheduledFor)? onNotificationScheduled;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     // Initialize timezone and set location to Vietnam
-    tz.initializeTimeZones();
+    tzdata.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
     
     print('🌍 Timezone set to: ${tz.local.name}');
@@ -81,7 +83,7 @@ class NotificationService {
   /// 
   /// This method will check if scheduledTime is in the future and only schedule if it is.
   Future<void> scheduleNotification({
-    required int id,
+    required String id,
     required String title,
     required String body,
     required DateTime scheduledTime,
@@ -90,12 +92,15 @@ class NotificationService {
   }) async {
     if (!_isInitialized) await initialize();
 
+    // Convert String id to int hash for notification ID (required by Flutter notifications API)
+    final notificationId = id.hashCode;
+
     // Cancel existing notification with same ID to avoid duplicates
     await cancelNotification(id);
 
     print('🔔 ========================================');
     print('🔔 SCHEDULING NOTIFICATION');
-    print('🔔 ID: $id');
+    print('🔔 ID: $id (notification #$notificationId)');
     print('🔔 Title: $title');
     print('🔔 Body: $body');
     print('🔔 Scheduled Time (notification): $scheduledTime');
@@ -132,7 +137,7 @@ class NotificationService {
 
     try {
       await _notifications.zonedSchedule(
-        id,
+        notificationId,
         title,
         body,
         tz.TZDateTime.from(scheduledTime, tz.local),
@@ -143,11 +148,13 @@ class NotificationService {
         payload: payload,
       );
       
-      print('✅ Successfully scheduled notification #$id');
+      print('✅ Successfully scheduled notification #$notificationId');
       print('🔔 ========================================');
       
-      // Save notification to database via callback
-      onNotificationScheduled?.call(id, title, body, type);
+      // Save notification to database via callback (record will be visible when due)
+      if (onNotificationScheduled != null) {
+        await onNotificationScheduled!.call(id, title, body, type, scheduledTime);
+      }
     } catch (e) {
       print('❌ Error scheduling notification: $e');
       print('🔔 ========================================');
@@ -155,30 +162,43 @@ class NotificationService {
   }
 
   /// Cancel a specific notification
-  Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
-    print('🗑️ Cancelled notification #$id');
+  Future<void> cancelNotification(String id) async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+    final notificationId = id.hashCode;
+    await _notifications.cancel(notificationId);
+    print('🗑️ Cancelled notification #$notificationId (ID: $id)');
   }
 
   /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
+    if (!_isInitialized) {
+      await initialize();
+    }
     await _notifications.cancelAll();
     print('🗑️ Cancelled all notifications');
   }
 
   /// Get list of pending notifications
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    if (!_isInitialized) {
+      await initialize();
+    }
     return await _notifications.pendingNotificationRequests();
   }
 
   /// Show immediate notification (for testing)
   Future<void> showImmediateNotification({
-    required int id,
+    required String id,
     required String title,
     required String body,
     String? payload,
+    String type = 'general',
   }) async {
     if (!_isInitialized) await initialize();
+
+    final notificationId = id.hashCode;
 
     const androidDetails = AndroidNotificationDetails(
       'instant_channel',
@@ -186,6 +206,8 @@ class NotificationService {
       channelDescription: 'Thông báo hiển thị ngay lập tức',
       importance: Importance.high,
       priority: Priority.high,
+      enableVibration: true,
+      playSound: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -199,6 +221,11 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(id, title, body, details, payload: payload);
+    await _notifications.show(notificationId, title, body, details, payload: payload);
+
+    // Save immediate notification to database as due now
+    if (onNotificationScheduled != null) {
+      await onNotificationScheduled!.call(id, title, body, type, DateTime.now());
+    }
   }
 }

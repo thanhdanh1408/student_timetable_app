@@ -5,5 +5,5 @@ import '../repositories/exam_repository.dart';
 class AddExamUsecase {
   final ExamRepository repository;
   AddExamUsecase(this.repository);
-  Future<void> call(ExamEntity exam) => repository.add(exam);
+  Future<String> call(ExamEntity exam) => repository.add(exam);
 }

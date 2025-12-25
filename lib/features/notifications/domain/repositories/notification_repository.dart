@@ -4,6 +4,6 @@ import '../entities/notification_entity.dart';
 abstract class NotificationRepository {
   Future<List<NotificationEntity>> getAll();
   Future<void> add(NotificationEntity notification);
-  Future<void> update(int index, NotificationEntity notification);
-  Future<void> delete(int id);
+  Future<void> update(int key, NotificationEntity notification);
+  Future<void> delete(int key);
 }

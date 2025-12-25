@@ -1,64 +1,76 @@
 // lib/features/schedule/domain/entities/schedule_entity.dart
-import 'package:hive/hive.dart';
+class ScheduleEntity {
+  final String? id; // schedule_id UUID from Supabase
 
-part 'schedule_entity.g.dart';
+  final String? subjectId; // subject_id UUID
 
-@HiveType(typeId: 1)
-class ScheduleEntity extends HiveObject {
-  @HiveField(0)
-  final int? id;
+  final String? subjectName; // denormalized for display
 
-  @HiveField(1)
-  final String subjectName;
+  final String? teacherName; // denormalized for display
 
-  @HiveField(2)
-  final String teacherName;
+  final int? dayOfWeek;
 
-  @HiveField(3)
-  final String room;
+  final String? startTime;
 
-  @HiveField(4)
-  final int dayOfWeek; // 2=Thứ 2, 3=Thứ 3, ..., 8=Chủ nhật
+  final String? endTime;
 
-  @HiveField(5)
-  final String startTime; // "07:30"
+  final String? location;
 
-  @HiveField(6)
-  final String endTime;   // "09:00"
+  final String? color;
 
-  @HiveField(7)
-  final String semester;
+  final bool isEnabled;
 
   ScheduleEntity({
     this.id,
-    required this.subjectName,
-    required this.teacherName,
-    required this.room,
-    required this.dayOfWeek,
-    required this.startTime,
-    required this.endTime,
-    required this.semester,
+    this.subjectId,
+    this.subjectName,
+    this.teacherName,
+    this.dayOfWeek,
+    this.startTime,
+    this.endTime,
+    this.location,
+    this.color,
+    this.isEnabled = true,
   });
 
+  factory ScheduleEntity.fromJson(Map<String, dynamic> json) {
+    return ScheduleEntity(
+      id: json['schedule_id'] as String?,
+      subjectId: json['subject_id'] as String?,
+      subjectName: json['subject_name'] as String?,
+      teacherName: json['teacher_name'] as String?,
+      dayOfWeek: json['day_of_week'] as int?,
+      startTime: json['start_time'] as String?,
+      endTime: json['end_time'] as String?,
+      location: json['location'] as String?,
+      color: json['color'] as String?,
+      isEnabled: json['is_enabled'] as bool? ?? true,
+    );
+  }
+
   ScheduleEntity copyWith({
-    int? id,
+    String? id,
+    String? subjectId,
     String? subjectName,
     String? teacherName,
-    String? room,
     int? dayOfWeek,
     String? startTime,
     String? endTime,
-    String? semester,
+    String? location,
+    String? color,
+    bool? isEnabled,
   }) {
     return ScheduleEntity(
       id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
       subjectName: subjectName ?? this.subjectName,
       teacherName: teacherName ?? this.teacherName,
-      room: room ?? this.room,
       dayOfWeek: dayOfWeek ?? this.dayOfWeek,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      semester: semester ?? this.semester,
+      location: location ?? this.location,
+      color: color ?? this.color,
+      isEnabled: isEnabled ?? this.isEnabled,
     );
   }
 }

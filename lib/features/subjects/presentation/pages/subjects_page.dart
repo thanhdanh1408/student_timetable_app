@@ -1,7 +1,7 @@
 // lib/features/subjects/presentation/pages/subjects_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/subjects_provider.dart';
+import '../viewmodels/subjects_viewmodel.dart';
 import '../widgets/subject_card.dart';
 import '../widgets/subject_form_dialog.dart';
 
@@ -12,13 +12,12 @@ class SubjectsPage extends StatefulWidget {
 
 class _SubjectsPageState extends State<SubjectsPage> {
   final _searchCtrl = TextEditingController();
-  String _filterDay = "Tất cả";
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SubjectsProvider>().load();
+      context.read<SubjectsViewModel>().load();
     });
   }
 
@@ -27,7 +26,7 @@ class _SubjectsPageState extends State<SubjectsPage> {
     super.didUpdateWidget(oldWidget);
     // Kiểm tra nếu có lỗi, hiển thị SnackBar
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<SubjectsProvider>();
+      final provider = context.read<SubjectsViewModel>();
       if (provider.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Lỗi: ${provider.error}"), backgroundColor: Colors.red),
@@ -42,25 +41,17 @@ class _SubjectsPageState extends State<SubjectsPage> {
     super.dispose();
   }
 
-  List<String> _getDayNames() => ["Tất cả", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
-
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<SubjectsProvider>();
+    final provider = context.watch<SubjectsViewModel>();
     
-    // Filter logic
+    // Filter logic - chỉ lọc theo tên
     var filtered = provider.subjects;
-    
-    if (_filterDay != "Tất cả") {
-      final dayMap = {"Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8};
-      final selectedDay = dayMap[_filterDay]!;
-      filtered = filtered.where((s) => s.dayOfWeek == selectedDay).toList();
-    }
     
     if (_searchCtrl.text.isNotEmpty) {
       filtered = filtered.where((s) => 
         s.subjectName.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ||
-        s.teacherName.toLowerCase().contains(_searchCtrl.text.toLowerCase())
+        (s.teacherName?.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ?? false)
       ).toList();
     }
 
@@ -71,10 +62,24 @@ class _SubjectsPageState extends State<SubjectsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => SubjectFormDialog(onSave: (s) => provider.add(s)),
-            ),
+            onPressed: () {
+              print('🔵 [SubjectsPage] Add button clicked');
+              try {
+                showDialog(
+                  context: context,
+                  builder: (_) {
+                    print('🔵 [SubjectsPage] Building SubjectFormDialog');
+                    return SubjectFormDialog(onSave: (s) {
+                      print('🔵 [SubjectsPage] onSave called for: ${s.subjectName}');
+                      provider.add(s);
+                    });
+                  },
+                );
+              } catch (e, stackTrace) {
+                print('❌ [SubjectsPage] Error showing dialog: $e');
+                print('❌ StackTrace: $stackTrace');
+              }
+            },
           ),
         ],
       ),
@@ -82,38 +87,18 @@ class _SubjectsPageState extends State<SubjectsPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Search & Filter
+                // Search
                 Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: "Tìm môn học hoặc giảng viên...",
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: _getDayNames()
-                              .map((day) => Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: FilterChip(
-                                      label: Text(day),
-                                      selected: _filterDay == day,
-                                      onSelected: (_) => setState(() => _filterDay = day),
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: "Tìm môn học hoặc giảng viên...",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
                 // List

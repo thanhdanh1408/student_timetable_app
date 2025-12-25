@@ -5,7 +5,7 @@ class DeleteNotificationUsecase {
   final NotificationRepository repository;
   DeleteNotificationUsecase(this.repository);
 
-  Future<void> call(int id) async {
-    return await repository.delete(id);
+  Future<void> call(int key) async {
+    return await repository.delete(key);
   }
 }

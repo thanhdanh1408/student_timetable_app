@@ -3,7 +3,7 @@ import '../entities/schedule_entity.dart';
 
 abstract class ScheduleRepository {
   Future<List<ScheduleEntity>> getAll();
-  Future<int> add(ScheduleEntity schedule);
+  Future<String> add(ScheduleEntity schedule);
   Future<void> update(ScheduleEntity schedule);
-  Future<void> delete(int id);
+  Future<void> delete(String id);
 }

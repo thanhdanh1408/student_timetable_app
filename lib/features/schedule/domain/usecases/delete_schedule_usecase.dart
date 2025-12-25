@@ -4,5 +4,5 @@ import '../repositories/schedule_repository.dart';
 class DeleteScheduleUsecase {
   final ScheduleRepository repository;
   DeleteScheduleUsecase(this.repository);
-  Future<void> call(int id) => repository.delete(id);
+  Future<void> call(String id) => repository.delete(id);
 }

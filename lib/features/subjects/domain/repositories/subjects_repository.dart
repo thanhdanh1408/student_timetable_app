@@ -5,5 +5,5 @@ abstract class SubjectsRepository {
   Future<List<SubjectEntity>> getAll();
   Future<void> add(SubjectEntity subject);
   Future<void> update(SubjectEntity subject);
-  Future<void> delete(int id);
+  Future<void> delete(String id);
 }

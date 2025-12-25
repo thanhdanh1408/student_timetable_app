@@ -7,7 +7,7 @@ class UpdateNotificationUsecase {
 
   UpdateNotificationUsecase(this.repository);
 
-  Future<void> call(int index, NotificationEntity notification) async {
-    return repository.update(index, notification);
+  Future<void> call(int key, NotificationEntity notification) async {
+    return repository.update(key, notification);
   }
 }

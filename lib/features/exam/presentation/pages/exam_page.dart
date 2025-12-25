@@ -1,13 +1,13 @@
 // lib/features/exam/presentation/pages/exam_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/exam_provider.dart';
+import '../viewmodels/exam_viewmodel.dart';
 import '../widgets/exam_card.dart';
 import '../widgets/exam_form_dialog.dart';
 
-// Import SubjectsProvider - navigate from exam/presentation/pages
-// ../../../ = features, then subjects/presentation/providers
-import '../../../subjects/presentation/providers/subjects_provider.dart';
+// Import SubjectsViewModel - navigate from exam/presentation/pages
+// ../../../ = features, then subjects/presentation/viewmodels
+import '../../../subjects/presentation/viewmodels/subjects_viewmodel.dart';
 
 class ExamPage extends StatefulWidget {
   const ExamPage({super.key});
@@ -22,7 +22,7 @@ class _ExamPageState extends State<ExamPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ExamProvider>().load();
+      context.read<ExamViewModel>().load();
     });
   }
 
@@ -34,27 +34,30 @@ class _ExamPageState extends State<ExamPage> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ExamProvider>();
-    final subjectsProvider = context.watch<SubjectsProvider>();
+    final provider = context.watch<ExamViewModel>();
+    final subjectsViewModel = context.watch<SubjectsViewModel>();
 
     // Filter logic
     var filtered = provider.exams;
     
     if (_filterStatus == "Sắp tới") {
-      filtered = filtered.where((e) => e.examDate.isAfter(DateTime.now())).toList();
+      filtered = filtered.where((e) => e.examDate != null && e.examDate!.isAfter(DateTime.now())).toList();
     } else if (_filterStatus == "Đã qua") {
-      filtered = filtered.where((e) => e.examDate.isBefore(DateTime.now())).toList();
+      filtered = filtered.where((e) => e.examDate != null && e.examDate!.isBefore(DateTime.now())).toList();
     }
     
     if (_searchCtrl.text.isNotEmpty) {
       filtered = filtered.where((e) => 
-        e.subjectName.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ||
-        e.teacherName.toLowerCase().contains(_searchCtrl.text.toLowerCase())
+        (e.subjectName?.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ?? false) ||
+        (e.teacherName?.toLowerCase().contains(_searchCtrl.text.toLowerCase()) ?? false)
       ).toList();
     }
 
     // Sort by date
-    filtered.sort((a, b) => a.examDate.compareTo(b.examDate));
+    filtered.sort((a, b) {
+      if (a.examDate == null || b.examDate == null) return 0;
+      return a.examDate!.compareTo(b.examDate!);
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -66,7 +69,7 @@ class _ExamPageState extends State<ExamPage> {
             onPressed: () => showDialog(
               context: context,
               builder: (_) => ExamFormDialog(
-                subjects: subjectsProvider.subjects,
+                subjects: subjectsViewModel.subjects,
                 onSave: (e) => provider.add(e),
               ),
             ),
@@ -137,7 +140,7 @@ class _ExamPageState extends State<ExamPage> {
                                 context: context,
                                 builder: (_) => ExamFormDialog(
                                   exam: exam,
-                                  subjects: subjectsProvider.subjects,
+                                  subjects: subjectsViewModel.subjects,
                                   onSave: (e) => provider.update(e),
                                 ),
                               ),
@@ -155,7 +158,7 @@ class _ExamPageState extends State<ExamPage> {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, ExamProvider provider, int id) {
+  void _showDeleteConfirm(BuildContext context, ExamViewModel provider, String id) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

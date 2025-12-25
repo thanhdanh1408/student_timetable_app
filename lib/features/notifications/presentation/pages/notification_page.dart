@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '/features/exam/presentation/providers/exam_provider.dart';
-import '/features/schedule/presentation/providers/schedule_provider.dart';
-import '/features/notifications/presentation/providers/notification_provider.dart';
+import '/features/notifications/presentation/viewmodels/notification_viewmodel.dart';
+import '../../domain/entities/notification_entity.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -21,7 +20,7 @@ class _NotificationPageState extends State<NotificationPage>
     _tabController = TabController(length: 3, vsync: this);
     // Load data khi page khởi tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NotificationProvider>().load();
+      context.read<NotificationViewModel>().load();
     });
   }
 
@@ -33,6 +32,11 @@ class _NotificationPageState extends State<NotificationPage>
 
   @override
   Widget build(BuildContext context) {
+    final notificationViewModel = context.watch<NotificationViewModel>();
+    final notifications = notificationViewModel.notifications;
+    final unreadCount = notifications.where((n) => !n.isRead).length;
+    final readCount = notifications.where((n) => n.isRead).length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Thông báo', style: TextStyle(color: Colors.white)),
@@ -43,46 +47,22 @@ class _NotificationPageState extends State<NotificationPage>
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.white,
           tabs: [
-            Tab(
-              text: 'Tất cả (0)',
-            ),
-            Tab(
-              text: 'Chưa đọc (0)',
-            ),
-            Tab(
-              text: 'Đã đọc (0)',
-            ),
+            Tab(text: 'Tất cả (${notifications.length})'),
+            Tab(text: 'Chưa đọc ($unreadCount)'),
+            Tab(text: 'Đã đọc ($readCount)'),
           ],
         ),
       ),
-      body: Consumer3<ExamProvider, ScheduleProvider, NotificationProvider>(
-        builder: (_, examProvider, scheduleProvider, notificationProvider, __) {
-          final notifications = notificationProvider.notifications;
-
-          if (notifications.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              // Tab "Tất cả"
-              _buildNotificationList(notifications),
-              // Tab "Chưa đọc"
-              _buildNotificationList(
-                  notifications.where((n) => !n.isRead).toList()),
-              // Tab "Đã đọc"
-              _buildNotificationList(
-                  notifications.where((n) => n.isRead).toList()),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showDebugInfo,
-        backgroundColor: Colors.black,
-        child: const Icon(Icons.bug_report, color: Colors.white),
-      ),
+      body: notifications.isEmpty
+          ? _buildEmptyState()
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildNotificationList(notifications),
+                _buildNotificationList(notifications.where((n) => !n.isRead).toList()),
+                _buildNotificationList(notifications.where((n) => n.isRead).toList()),
+              ],
+            ),
     );
   }
 
@@ -115,14 +95,14 @@ class _NotificationPageState extends State<NotificationPage>
     );
   }
 
-  Widget _buildNotificationList(List<dynamic> notifications) {
+  Widget _buildNotificationList(List<NotificationEntity> notifications) {
     if (notifications.isEmpty) {
       return _buildEmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: () async {
-        await context.read<NotificationProvider>().load();
+        await context.read<NotificationViewModel>().load();
       },
       child: ListView.builder(
         itemCount: notifications.length,
@@ -130,6 +110,7 @@ class _NotificationPageState extends State<NotificationPage>
         itemBuilder: (context, index) {
           final notification = notifications[index];
           final isRead = notification.isRead;
+          final notificationId = notification.id;
           
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -171,7 +152,7 @@ class _NotificationPageState extends State<NotificationPage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatTime(notification.createdAt),
+                    _formatTime(notification.scheduledFor),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[500],
@@ -186,13 +167,16 @@ class _NotificationPageState extends State<NotificationPage>
                     PopupMenuItem(
                       child: const Text('✓ Đánh dấu đã đọc'),
                       onTap: () {
-                        context.read<NotificationProvider>().markAsRead(index);
+                        if (notificationId != null) {
+                          context.read<NotificationViewModel>().markAsRead(notificationId);
+                        }
                       },
                     ),
                   PopupMenuItem(
                     child: const Text('🗑️ Xóa'),
                     onTap: () {
-                      context.read<NotificationProvider>().delete(index);
+                      // Delete by index (legacy Hive key)
+                      context.read<NotificationViewModel>().deleteByKey(index);
                     },
                   ),
                 ],
@@ -245,73 +229,5 @@ class _NotificationPageState extends State<NotificationPage>
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
-  }
-
-  Future<void> _showDebugInfo() async {
-    final notificationService = context.read<NotificationProvider>().notificationService;
-    final pendingNotifications = await notificationService.getPendingNotifications();
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Thông Báo'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Số thông báo đang chờ: ${pendingNotifications.length}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              if (pendingNotifications.isEmpty)
-                const Text('Không có thông báo nào được lên lịch.')
-              else
-                ...pendingNotifications.map((pending) => Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('ID: ${pending.id}'),
-                            Text('Tiêu đề: ${pending.title ?? 'N/A'}'),
-                            Text('Nội dung: ${pending.body ?? 'N/A'}'),
-                            Text('Payload: ${pending.payload ?? 'N/A'}'),
-                          ],
-                        ),
-                      ),
-                    )),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await notificationService.showImmediateNotification(
-                    id: 99999,
-                    title: 'Test Notification',
-                    body: 'Đây là thông báo test để kiểm tra hệ thống!',
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã gửi test notification!')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.send),
-                label: const Text('Gửi Test Notification'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
   }
 }

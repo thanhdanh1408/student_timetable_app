@@ -13,28 +13,105 @@ class ExamCard extends StatelessWidget {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return 'N/A';
+    try {
+      final parts = time.split(':');
+      if (parts.length >= 2) {
+        return '${parts[0]}:${parts[1]}';
+      }
+      return time;
+    } catch (e) {
+      return time;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Parse color from hex string
+    Color examColor = Colors.blue;
+    if (exam.color != null && exam.color!.isNotEmpty) {
+      try {
+        examColor = Color(int.parse(exam.color!.replaceFirst('#', '0xFF')));
+      } catch (e) {
+        examColor = Colors.blue;
+      }
+    }
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(exam.subjectName, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: examColor, width: 3),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Text("GV: ${exam.teacherName}"),
-            Text("Phòng: ${exam.room}"),
-            Text("Thời gian: ${exam.startTime}${exam.endTime != null ? "-${exam.endTime}" : ""}"),
-            Text("Ngày: ${_formatDate(exam.examDate)}"),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),
-            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: onDelete),
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: examColor.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.assignment,
+                color: examColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exam.subjectName ?? "N/A",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "GV: ${exam.teacherName ?? "N/A"}",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  Text(
+                    "Kỳ thi: ${exam.examName ?? "N/A"}",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  Text(
+                    "Ngày: ${exam.examDate != null ? _formatDate(exam.examDate!) : "N/A"}",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  Text(
+                    "Giờ: ${_formatTime(exam.examTime)}",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  if (exam.examRoom != null && exam.examRoom!.isNotEmpty)
+                    Text(
+                      "Phòng: ${exam.examRoom}",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit, color: examColor),
+                  onPressed: onEdit,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
           ],
         ),
       ),

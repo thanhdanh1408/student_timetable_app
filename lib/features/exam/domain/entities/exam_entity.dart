@@ -1,70 +1,76 @@
 // lib/features/exam/domain/entities/exam_entity.dart
-import 'package:hive/hive.dart';
+class ExamEntity {
+  final String? id; // exam_id UUID
 
-part 'exam_entity.g.dart';
+  final String? subjectId; // subject_id UUID
 
-@HiveType(typeId: 2)
-class ExamEntity extends HiveObject {
-  @HiveField(0)
-  final int? id;
+  final String? subjectName; // denormalized for display
 
-  @HiveField(1)
-  final String subjectName;
+  final String? teacherName; // denormalized for display
 
-  @HiveField(2)
-  final String teacherName;
+  final DateTime? examDate;
 
-  @HiveField(3)
-  final String room;
+  final String? examTime;
 
-  @HiveField(4)
-  final DateTime examDate; // Ngày thi
+  final String? examName;
 
-  @HiveField(5)
-  final String startTime; // Giờ bắt đầu thi
+  final String? examRoom;
 
-  @HiveField(6)
-  final String? endTime;   // Giờ kết thúc thi (nếu có)
+  final String? color;
 
-  @HiveField(7)
-  final String semester;
-
-  @HiveField(8)
-  final String? note;
+  final bool isCompleted;
 
   ExamEntity({
     this.id,
-    required this.subjectName,
-    required this.teacherName,
-    required this.room,
-    required this.examDate,
-    required this.startTime,
-    this.endTime,
-    required this.semester,
-    this.note,
+    this.subjectId,
+    this.subjectName,
+    this.teacherName,
+    this.examDate,
+    this.examTime,
+    this.examName,
+    this.examRoom,
+    this.color,
+    this.isCompleted = false,
   });
 
+  factory ExamEntity.fromJson(Map<String, dynamic> json) {
+    return ExamEntity(
+      id: json['exam_id'] as String?,
+      subjectId: json['subject_id'] as String?,
+      subjectName: json['subject_name'] as String?,
+      teacherName: json['teacher_name'] as String?,
+      examDate: json['exam_date'] != null ? DateTime.parse(json['exam_date'] as String) : null,
+      examTime: json['exam_time'] as String?,
+      examName: json['exam_name'] as String?,
+      examRoom: json['exam_room'] as String?,
+      color: json['color'] as String?,
+      isCompleted: json['is_completed'] as bool? ?? false,
+    );
+  }
+
   ExamEntity copyWith({
-    int? id,
+    String? id,
+    String? subjectId,
     String? subjectName,
     String? teacherName,
-    String? room,
     DateTime? examDate,
-    String? startTime,
-    String? endTime,
-    String? semester,
-    String? note,
+    String? examTime,
+    String? examName,
+    String? examRoom,
+    String? color,
+    bool? isCompleted,
   }) {
     return ExamEntity(
       id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
       subjectName: subjectName ?? this.subjectName,
       teacherName: teacherName ?? this.teacherName,
-      room: room ?? this.room,
       examDate: examDate ?? this.examDate,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      semester: semester ?? this.semester,
-      note: note ?? this.note,
+      examTime: examTime ?? this.examTime,
+      examName: examName ?? this.examName,
+      examRoom: examRoom ?? this.examRoom,
+      color: color ?? this.color,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 }

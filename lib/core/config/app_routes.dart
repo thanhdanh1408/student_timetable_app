@@ -1,8 +1,9 @@
 // lib/core/config/app_routes.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '/features/authentication/presentation/providers/auth_provider.dart' as auth;
+import '/core/providers/auth_provider.dart' as auth;
 import '/features/authentication/presentation/pages/login_page.dart';
 import '/features/authentication/presentation/pages/register_page.dart';
 import '/features/home/presentation/pages/home_page.dart';
@@ -29,32 +30,36 @@ class _BottomNavShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _getIndex(context),
-        onDestinationSelected: (index) {
-          const paths = ['/home', '/subjects', '/schedule', '/exam', '/notification', '/settings'];
-          context.go(paths[index]);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.book_outlined), selectedIcon: Icon(Icons.book), label: 'Môn học'),
-          NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today), label: 'Lịch học'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: 'Lịch thi'),
-          NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Thông báo'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Cài đặt'),
-        ],
-      ),
+    return Consumer<auth.AuthProvider>(
+      builder: (context, authProvider, _) {
+        return Scaffold(
+          body: child,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _getIndex(context),
+            onDestinationSelected: (index) {
+              const paths = ['/home', '/subjects', '/schedule', '/exam', '/notification', '/settings'];
+              context.go(paths[index]);
+            },
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Trang chủ'),
+              NavigationDestination(icon: Icon(Icons.book_outlined), selectedIcon: Icon(Icons.book), label: 'Môn học'),
+              NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today), label: 'Lịch học'),
+              NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: 'Lịch thi'),
+              NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Thông báo'),
+              NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Cài đặt'),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-GoRouter createAppRouter(auth.AuthProvider authProvider) {
+GoRouter _createAppRouter(auth.AuthProvider authProvider) {
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
-      final isLoggedIn = authProvider.isLoggedIn;
+      final isLoggedIn = authProvider.isAuthenticated;
       final isSplashPage = state.uri.path == '/splash';
       if(isSplashPage) return null;
       final isLoginPage = state.uri.path == '/login';
@@ -90,4 +95,12 @@ GoRouter createAppRouter(auth.AuthProvider authProvider) {
       ),
     ],
   );
+}
+
+class AppRoutes {
+  static late final GoRouter router;
+
+  static void initialize(auth.AuthProvider authProvider) {
+    router = _createAppRouter(authProvider);
+  }
 }
