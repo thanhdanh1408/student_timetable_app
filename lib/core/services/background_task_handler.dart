@@ -11,11 +11,11 @@ void callbackDispatcher() {
       // NOTE: Background task chạy ngoài main thread, không có Context
       // Không gọi NotificationService().initialize() vì sẽ crash
       // (Context bị null)
-      
+
       // NOTE: Schedule reminders are handled in ScheduleViewModel when users add/update schedules.
       // Only exam reminders use background tasks to check for upcoming exams periodically.
       // NOTE: Exam data is now fetched from Supabase via ExamViewModel, not from local Hive storage.
-      
+
       if (task == _examReminderTaskId) {
         // Background task for periodic exam checks
         // Exam reminders are scheduled when users add/update exams.
@@ -44,22 +44,18 @@ class BackgroundTaskHandler {
   Future<void> init() async {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,  // Tắt debug notifications
+      isInDebugMode: false, // Tắt debug notifications
     );
   }
 
   // Đăng ký các background tasks
   Future<void> registerTasks() async {
-    // NOTE: Chỉ đăng ký exam reminder task
-    // Schedule notifications được xử lý trực tiếp trong ScheduleViewModel
-    
-    // Schedule task kiểm tra lịch thi mỗi 1 giờ
-    await Workmanager().registerPeriodicTask(
-      _examReminderTaskId,
-      _examReminderTaskId,
-      frequency: const Duration(hours: 1),
-      initialDelay: const Duration(minutes: 5),
-    );
+    // Exam reminders are scheduled with `flutter_local_notifications` when users add/update exams.
+    // A periodic Workmanager task is not needed, and (when debug mode was enabled in older builds)
+    // it can spam "Result: Success" notifications.
+    //
+    // Migration/safety: cancel any previously registered periodic task.
+    await Workmanager().cancelByUniqueName(_examReminderTaskId);
   }
 
   // Hủy tất cả background tasks
